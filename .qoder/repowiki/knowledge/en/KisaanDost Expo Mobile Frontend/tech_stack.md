@@ -1,0 +1,1 @@
+Expo SDK ~57 with React Native 0.86, TypeScript ~6.0, @react-navigation/native + native-stack + bottom-tabs v7, expo-audio for microphone access, react-native-safe-area-context and react-native-screens.

@@ -1,0 +1,1 @@
+Run with `npx expo start`; Android device via `npm run android`, iOS via `npm run ios`, web preview via `npm run web`. Microphone permission on Android/iOS is configured through the `expo-audio` plugin in `app.json`.

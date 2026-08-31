@@ -1,0 +1,17 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: main
+nodes_managed: true
+exported_at: "2026-08-31T08:03:44Z"
+modules:
+    "":
+        dir_name: KisaanDost Expo Mobile Frontend
+        title: KisaanDost Expo Mobile Frontend
+        scope:
+            - README.md
+            - frontend/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

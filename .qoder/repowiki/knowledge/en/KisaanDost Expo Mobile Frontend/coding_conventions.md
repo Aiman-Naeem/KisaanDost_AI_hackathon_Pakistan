@@ -1,0 +1,4 @@
+- Screens are exported as default functional React components returning JSX styled with `StyleSheet.create` blocks defined at the bottom of each file.
+- Navigation types are declared as typed param lists (e.g. `RootTabParamList`, `MarketplaceStackParamList`) and passed as generic arguments to `createBottomTabNavigator` / `createNativeStackNavigator`.
+- Global theming (green `#2e7d32` header/tabs, white tint, bold titles) is applied via `screenOptions` on navigators rather than per-screen overrides.
+- Cross-cutting modules expose barrel exports via `index.ts` files (`components/index.ts`, `services/index.ts`) that currently serve as placeholders for future shared code.

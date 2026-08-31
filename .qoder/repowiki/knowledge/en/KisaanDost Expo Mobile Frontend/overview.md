@@ -1,0 +1,1 @@
+Expo-based React Native mobile app providing a voice assistant and marketplace for farmers, with tab-based navigation and microphone-enabled voice recording.
