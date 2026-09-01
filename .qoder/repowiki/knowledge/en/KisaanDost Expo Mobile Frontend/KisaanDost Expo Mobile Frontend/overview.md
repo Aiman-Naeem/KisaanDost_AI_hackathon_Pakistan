@@ -1,0 +1,1 @@
+Expo-based React Native mobile app that lets farmers record voice queries in Urdu and browse a crop listing marketplace, backed by an in-memory mock API.

@@ -6,9 +6,21 @@
 - [ListingsScreen.tsx](file://frontend/screens/ListingsScreen.tsx)
 - [MarketplaceNavigator.tsx](file://frontend/navigation/MarketplaceNavigator.tsx)
 - [AppNavigator.tsx](file://frontend/navigation/AppNavigator.tsx)
-- [App.tsx](file://frontend/App.tsx)
-- [index.ts](file://frontend/services/index.ts)
+- [api.ts](file://frontend/services/api.ts)
+- [FarmerContext.tsx](file://frontend/contexts/FarmerContext.tsx)
+- [crops.ts](file://frontend/theme/crops.ts)
+- [StateCard.tsx](file://frontend/components/ui/StateCard.tsx)
+- [PrimaryButton.tsx](file://frontend/components/ui/PrimaryButton.tsx)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated AddListingScreen implementation from placeholder to fully functional form
+- Added comprehensive validation and error handling
+- Implemented form submission with API integration
+- Added editing functionality for existing listings
+- Enhanced user experience with loading states and feedback mechanisms
+- Integrated with farmer context for identity management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -16,20 +28,24 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
-10. [Appendices](#appendices)
+6. [Form Implementation](#form-implementation)
+7. [Validation and Error Handling](#validation-and-error-handling)
+8. [API Integration](#api-integration)
+9. [User Experience Features](#user-experience-features)
+10. [Dependency Analysis](#dependency-analysis)
+11. [Performance Considerations](#performance-considerations)
+12. [Troubleshooting Guide](#troubleshooting-guide)
+13. [Conclusion](#conclusion)
+14. [Appendices](#appendices)
 
 ## Introduction
-This document provides comprehensive documentation for the AddListingScreen component, which currently serves as a placeholder UI for creating new marketplace listings. The intended functionality is to allow farmers to add listings for crops, livestock details, and farming supplies. At present, the screen displays a simple title, an explanatory subtitle indicating that the form is coming soon, and a button to return to the Listings screen. Future development will implement input fields, validation, state management, submission handling, and integration with backend APIs.
+The AddListingScreen component provides a comprehensive form interface for farmers to create new crop listings in the marketplace. Unlike its initial placeholder state, it now includes full form functionality with validation, submission handling, editing capabilities, and seamless integration with the backend API. The screen supports both new listing creation and editing existing listings, with appropriate UI feedback and error handling throughout the process.
 
 ## Project Structure
-The AddListingScreen is part of a React Native application using Expo and React Navigation. It resides under screens and is navigated via a stack navigator within the Marketplace tab. The navigation hierarchy is:
+The AddListingScreen is part of a React Native application using Expo and React Navigation. It resides under screens and is navigated via a stack navigator within the Marketplace tab. The navigation hierarchy remains consistent:
 - App root wraps everything in a NavigationContainer
 - Bottom tabs include Voice Assistant and Marketplace
-- Marketplace uses a native stack with ListingsScreen and AddListingScreen
+- Marketplace uses a native stack with ListingsScreen, ListingDetailScreen, and AddListingScreen
 
 ```mermaid
 graph TB
@@ -37,49 +53,44 @@ App["App.tsx"] --> Nav["AppNavigator.tsx"]
 Nav --> TabMarketplace["Marketplace (Tab)"]
 TabMarketplace --> StackNav["MarketplaceNavigator.tsx"]
 StackNav --> Listings["ListingsScreen.tsx"]
+StackNav --> Detail["ListingDetailScreen.tsx"]
 StackNav --> AddListing["AddListingScreen.tsx"]
 ```
 
 **Diagram sources**
-- [App.tsx:6-13](file://frontend/App.tsx#L6-L13)
 - [AppNavigator.tsx:14-59](file://frontend/navigation/AppNavigator.tsx#L14-L59)
-- [MarketplaceNavigator.tsx:9-30](file://frontend/navigation/MarketplaceNavigator.tsx#L9-L30)
-- [ListingsScreen.tsx:12-28](file://frontend/screens/ListingsScreen.tsx#L12-L28)
-- [AddListingScreen.tsx:8-19](file://frontend/screens/AddListingScreen.tsx#L8-L19)
+- [MarketplaceNavigator.tsx:12-34](file://frontend/navigation/MarketplaceNavigator.tsx#L12-L34)
+- [ListingsScreen.tsx:26-39](file://frontend/screens/ListingsScreen.tsx#L26-L39)
 
 **Section sources**
-- [App.tsx:6-13](file://frontend/App.tsx#L6-L13)
 - [AppNavigator.tsx:14-59](file://frontend/navigation/AppNavigator.tsx#L14-L59)
-- [MarketplaceNavigator.tsx:9-30](file://frontend/navigation/MarketplaceNavigator.tsx#L9-L30)
-- [ListingsScreen.tsx:12-28](file://frontend/screens/ListingsScreen.tsx#L12-L28)
-- [AddListingScreen.tsx:8-19](file://frontend/screens/AddListingScreen.tsx#L8-L19)
+- [MarketplaceNavigator.tsx:12-34](file://frontend/navigation/MarketplaceNavigator.tsx#L12-L34)
+- [ListingsScreen.tsx:26-39](file://frontend/screens/ListingsScreen.tsx#L26-L39)
 
 ## Core Components
-- AddListingScreen: Placeholder UI with title, subtitle, and back button. No form inputs or logic yet.
-- ListingsScreen: Entry point to navigate to AddListingScreen; also a placeholder listing view.
-- MarketplaceNavigator: Defines the stack containing ListingsScreen and AddListingScreen with consistent header styling.
-- AppNavigator: Bottom tab structure placing Marketplace alongside Voice Assistant.
-- Services index: Placeholder module reserved for API calls and integrations.
+- **AddListingScreen**: Full-featured form with validation, submission, and editing capabilities
+- **ListingsScreen**: Entry point with floating action button to navigate to AddListingScreen
+- **MarketplaceNavigator**: Defines the stack containing all marketplace screens with consistent styling
+- **API Service Layer**: Mock API layer providing createListing, getListings, deleteListing functions
+- **FarmerContext**: Provides persistent farmer identity for listing attribution
+- **UI Components**: StateCard for error/info messages, PrimaryButton for actions with loading states
 
 Key responsibilities:
-- Navigation wiring between screens
-- Presenting a clear, accessible placeholder message
-- Preparing the foundation for future form implementation
+- Form input handling with real-time validation
+- Data submission to backend API with proper error handling
+- Editing mode support for modifying existing listings
+- User feedback through loading states and success/error messages
+- Integration with farmer identity system
 
 **Section sources**
-- [AddListingScreen.tsx:8-19](file://frontend/screens/AddListingScreen.tsx#L8-L19)
-- [ListingsScreen.tsx:12-28](file://frontend/screens/ListingsScreen.tsx#L12-L28)
-- [MarketplaceNavigator.tsx:9-30](file://frontend/navigation/MarketplaceNavigator.tsx#L9-L30)
-- [AppNavigator.tsx:14-59](file://frontend/navigation/AppNavigator.tsx#L14-L59)
-- [index.ts:1-3](file://frontend/services/index.ts#L1-L3)
+- [AddListingScreen.tsx:35-129](file://frontend/screens/AddListingScreen.tsx#L35-L129)
+- [ListingsScreen.tsx:234-241](file://frontend/screens/ListingsScreen.tsx#L234-L241)
+- [MarketplaceNavigator.tsx:12-34](file://frontend/navigation/MarketplaceNavigator.tsx#L12-L34)
+- [api.ts:209-255](file://frontend/services/api.ts#L209-L255)
+- [FarmerContext.tsx:23-43](file://frontend/contexts/FarmerContext.tsx#L23-L43)
 
 ## Architecture Overview
-The current architecture is minimal and focused on navigation. The AddListingScreen is a leaf node in the Marketplace stack. Future enhancements should introduce:
-- Local state or context for form data
-- Validation layer
-- Service layer for API calls
-- Error and loading states
-- Success feedback mechanisms
+The AddListingScreen follows a modern React Native architecture with clear separation of concerns:
 
 ```mermaid
 sequenceDiagram
@@ -87,196 +98,326 @@ participant User as "User"
 participant Listings as "ListingsScreen.tsx"
 participant Stack as "MarketplaceNavigator.tsx"
 participant Add as "AddListingScreen.tsx"
-User->>Listings : Tap "+ Add New Listing"
-Listings->>Stack : Navigate to "AddListingScreen"
+participant API as "services/api.ts"
+participant Context as "FarmerContext.tsx"
+User->>Listings : Tap "+" FAB
+Listings->>Stack : Navigate to AddListingScreen
 Stack-->>Add : Render AddListingScreen
-Note over Add : Placeholder UI only<br/>No form or submission yet
+Add->>Context : Get farmerId
+Note over Add : Show form with pre-filled data if editing
+User->>Add : Fill form fields
+User->>Add : Submit form
+Add->>Add : Validate inputs
+Add->>API : createListing/deleteListing
+API-->>Add : Success/Error response
+Add-->>User : Show feedback & navigate back
 ```
 
 **Diagram sources**
-- [ListingsScreen.tsx:21-26](file://frontend/screens/ListingsScreen.tsx#L21-L26)
-- [MarketplaceNavigator.tsx:18-27](file://frontend/navigation/MarketplaceNavigator.tsx#L18-L27)
-- [AddListingScreen.tsx:8-19](file://frontend/screens/AddListingScreen.tsx#L8-L19)
+- [ListingsScreen.tsx:234-241](file://frontend/screens/ListingsScreen.tsx#L234-L241)
+- [MarketplaceNavigator.tsx:29-33](file://frontend/navigation/MarketplaceNavigator.tsx#L29-L33)
+- [AddListingScreen.tsx:79-129](file://frontend/screens/AddListingScreen.tsx#L79-L129)
+- [api.ts:209-255](file://frontend/services/api.ts#L209-L255)
 
 ## Detailed Component Analysis
 
 ### AddListingScreen
-Current behavior:
-- Displays a title and a subtitle informing users that the form is coming soon
-- Provides a button to go back to the previous screen
-- Uses basic styling with a light background and centered layout
+The AddListingScreen is now a fully functional form component with comprehensive features:
 
-Intended future behavior:
-- Input fields for crop listings (e.g., crop type, quantity, price, location)
-- Livestock details (e.g., animal type, age, weight, health status)
-- Farming supplies (e.g., item name, brand, quantity, condition)
-- Form validation patterns (required fields, format checks, range validation)
-- State management for listing data (local state or global store)
-- Submission handling (POST to backend API)
-- Integration with marketplace data models (types/interfaces for listings)
-- Loading states during submission
-- Error handling for network/validation errors
-- Success feedback (confirmation message, navigation after success)
+**Current Implementation:**
+- **Form Fields**: Crop selection (picker), quantity (numeric), price (numeric), location (text), phone (11 digits)
+- **Validation**: Real-time field validation with specific error messages
+- **Submission**: Async form submission with loading states
+- **Editing Mode**: Support for editing existing listings with pre-populated data
+- **Error Handling**: Comprehensive error display with field-specific and general errors
+- **User Feedback**: Loading indicators, success/error messages, and navigation feedback
 
-Accessibility considerations:
-- Use accessible labels for all inputs
-- Ensure sufficient color contrast
-- Support screen readers with descriptive hints
-- Provide keyboard navigation support
-
-Mobile-optimized design:
-- Large touch targets for buttons and inputs
-- Clear visual hierarchy
-- Responsive layout for various screen sizes
-- Minimal cognitive load with progressive disclosure
-
-```mermaid
-flowchart TD
-Start(["Open AddListingScreen"]) --> ShowPlaceholder["Show placeholder UI"]
-ShowPlaceholder --> WaitForForm["Wait for form implementation"]
-WaitForForm --> End(["Future: Full form flow"])
-```
-
-[No sources needed since this diagram shows conceptual workflow, not actual code structure]
+**Key Features:**
+- Uses `useState` hooks for form state management
+- Implements custom validation function with regex patterns
+- Integrates with FarmerContext for automatic farmer ID assignment
+- Supports both create and edit operations
+- Uses KeyboardAvoidingView for mobile-friendly keyboard handling
+- Leverages reusable UI components (StateCard, PrimaryButton)
 
 **Section sources**
-- [AddListingScreen.tsx:8-19](file://frontend/screens/AddListingScreen.tsx#L8-L19)
-- [AddListingScreen.tsx:22-43](file://frontend/screens/AddListingScreen.tsx#L22-L43)
+- [AddListingScreen.tsx:35-129](file://frontend/screens/AddListingScreen.tsx#L35-L129)
+- [AddListingScreen.tsx:131-244](file://frontend/screens/AddListingScreen.tsx#L131-L244)
 
 ### ListingsScreen
-Current behavior:
-- Displays a title and subtitle indicating browsing capabilities are coming soon
-- Provides a button to navigate to AddListingScreen
+Enhanced with floating action button for easy access to listing creation:
 
-Navigation role:
-- Acts as the entry point to create new listings
-- Uses React Navigation to push AddListingScreen onto the stack
+**Navigation Role:**
+- Acts as the main marketplace view with listing display
+- Provides floating action button (+) for creating new listings
+- Handles filtering by crop type and location
+- Manages listing deletion with confirmation dialogs
 
 **Section sources**
-- [ListingsScreen.tsx:12-28](file://frontend/screens/ListingsScreen.tsx#L12-L28)
-- [ListingsScreen.tsx:31-63](file://frontend/screens/ListingsScreen.tsx#L31-L63)
+- [ListingsScreen.tsx:52-243](file://frontend/screens/ListingsScreen.tsx#L52-L243)
+- [ListingsScreen.tsx:234-241](file://frontend/screens/ListingsScreen.tsx#L234-L241)
 
 ### MarketplaceNavigator
-Responsibilities:
-- Creates a native stack for Marketplace-related screens
-- Configures header styles and titles consistently
-- Registers ListingsScreen and AddListingScreen with typed parameters
+Consistent navigation configuration with proper header styling:
 
-Consistency benefits:
-- Unified header appearance
-- Centralized navigation configuration
-- Type safety for route parameters
+**Responsibilities:**
+- Creates native stack for Marketplace-related screens
+- Configures green header theme matching app branding
+- Registers all marketplace screens with typed parameters
+- Maintains consistent navigation behavior across screens
 
 **Section sources**
-- [MarketplaceNavigator.tsx:9-30](file://frontend/navigation/MarketplaceNavigator.tsx#L9-L30)
+- [MarketplaceNavigator.tsx:12-34](file://frontend/navigation/MarketplaceNavigator.tsx#L12-L34)
 
-### AppNavigator and App
-Responsibilities:
-- App: Wraps the app in NavigationContainer and sets status bar style
-- AppNavigator: Defines bottom tabs for Voice Assistant and Marketplace
-- Ensures Marketplace tab hides its own header so the stack header takes over
+## Form Implementation
+
+### Form Fields and Input Types
+The form includes five primary fields with specific input types and validation:
+
+1. **Crop Selection**: Dropdown picker with emoji icons and bilingual labels
+2. **Quantity**: Numeric input with kg unit specification
+3. **Price**: Numeric input with PKR/kg currency format
+4. **Location**: Text input for geographic location
+5. **Phone**: Phone keypad input with 11-digit validation
+
+### State Management
+Uses React's useState hook for local form state:
+- Individual state variables for each field
+- Separate state for submission status and errors
+- Edit mode detection based on route parameters
+
+### Form Submission Flow
+1. **Validation**: Client-side validation before submission
+2. **API Call**: Create or delete/create operation based on edit mode
+3. **Error Handling**: Map API errors to specific fields
+4. **Navigation**: Return to previous screen on success
 
 **Section sources**
-- [App.tsx:6-13](file://frontend/App.tsx#L6-L13)
-- [AppNavigator.tsx:14-59](file://frontend/navigation/AppNavigator.tsx#L14-L59)
+- [AddListingScreen.tsx:48-67](file://frontend/screens/AddListingScreen.tsx#L48-L67)
+- [AddListingScreen.tsx:79-129](file://frontend/screens/AddListingScreen.tsx#L79-L129)
+
+## Validation and Error Handling
+
+### Client-Side Validation
+Comprehensive validation rules ensure data integrity:
+- **Quantity**: Must be positive number
+- **Price**: Must be positive number  
+- **Location**: Required field
+- **Phone**: Must be exactly 11 digits using regex pattern `/^\d{11}$/`
+
+### Error Display System
+Multi-layered error handling approach:
+- **Field-specific errors**: Displayed below individual fields with red borders
+- **General errors**: Shown using StateCard component at top of form
+- **API errors**: Mapped to appropriate fields based on error messages
+
+### Real-time Validation
+- Errors clear automatically when users correct their input
+- Visual feedback through border color changes
+- Immediate validation feedback during typing
+
+**Section sources**
+- [AddListingScreen.tsx:56-77](file://frontend/screens/AddListingScreen.tsx#L56-L77)
+- [AddListingScreen.tsx:137-145](file://frontend/screens/AddListingScreen.tsx#L137-L145)
+
+## API Integration
+
+### Backend Communication
+The form integrates with a mock API layer that simulates backend functionality:
+
+**API Functions Used:**
+- `createListing()`: Creates new listings with validation
+- `deleteListing()`: Removes original listing when editing
+- `getListings()`: Fetches existing listings with filters
+
+### Response Handling
+Standardized API response format:
+- **Success**: `{ success: true, listing: newListing }`
+- **Error**: `{ success: false, error: errorMessage }`
+
+### Mock vs Production
+Configurable between mock and production modes:
+- **Mock Mode**: In-memory data storage with simulated delays
+- **Production Mode**: Ready for real backend integration via fetch calls
+
+**Section sources**
+- [api.ts:209-255](file://frontend/services/api.ts#L209-L255)
+- [api.ts:320-337](file://frontend/services/api.ts#L320-L337)
+
+## User Experience Features
+
+### Accessibility Considerations
+- **Large Touch Targets**: Minimum 48dp height for buttons and inputs
+- **Clear Labels**: Descriptive labels for all form fields
+- **Visual Hierarchy**: Proper font sizes and spacing for readability
+- **Color Contrast**: High contrast colors for better visibility
+
+### Mobile Optimization
+- **Keyboard Avoiding**: Automatic keyboard handling for iOS and Android
+- **Responsive Layout**: Adapts to different screen sizes
+- **Input Types**: Optimized keyboards for numeric and phone inputs
+- **Scroll Behavior**: Proper scroll handling with keyboard avoidance
+
+### Loading States
+- **Submit Button**: Shows spinner during API calls
+- **Disabled State**: Prevents multiple submissions while processing
+- **Visual Feedback**: Clear indication of ongoing operations
+
+### Error Recovery
+- **User-Friendly Messages**: Clear error descriptions
+- **Field-Level Errors**: Specific guidance for fixing issues
+- **Retry Options**: Ability to retry failed operations
+
+**Section sources**
+- [AddListingScreen.tsx:132-244](file://frontend/screens/AddListingScreen.tsx#L132-L244)
+- [PrimaryButton.tsx:34-68](file://frontend/components/ui/PrimaryButton.tsx#L34-L68)
+- [StateCard.tsx:53-77](file://frontend/components/ui/StateCard.tsx#L53-L77)
 
 ## Dependency Analysis
-Current dependencies:
-- AddListingScreen depends on React Native primitives and React Navigation types
-- ListingsScreen defines the MarketplaceStackParamList used by AddListingScreen and MarketplaceNavigator
-- MarketplaceNavigator imports both screens and configures the stack
-- AppNavigator includes MarketplaceNavigator as a tab
-- Services index is a placeholder for future API integrations
 
-Potential future dependencies:
-- Form libraries (e.g., react-hook-form) for validation
-- State management (e.g., Context, Redux, Zustand) for listing data
-- API client (e.g., axios, fetch wrapper) for backend communication
-- Data models/types for marketplace listings
+### Component Dependencies
+The AddListingScreen depends on several key modules:
+
+**Core Dependencies:**
+- React Native primitives (TextInput, Picker, ScrollView)
+- React Navigation for screen management
+- Custom UI components (StateCard, PrimaryButton)
+- Theme system for consistent styling
+
+**Service Dependencies:**
+- API service layer for data operations
+- Farmer context for identity management
+- Crop theme data for display options
 
 ```mermaid
 graph LR
-Listings["ListingsScreen.tsx"] --> Types["MarketplaceStackParamList"]
-AddListing["AddListingScreen.tsx"] --> Types
-MarketplaceNav["MarketplaceNavigator.tsx"] --> Listings
-MarketplaceNav --> AddListing
-AppNav["AppNavigator.tsx"] --> MarketplaceNav
-App["App.tsx"] --> AppNav
-Services["services/index.ts"] -.future API.-> AddListing
+AddListing["AddListingScreen.tsx"] --> API["services/api.ts"]
+AddListing --> Context["contexts/FarmerContext.tsx"]
+AddListing --> UI["components/ui/*"]
+AddListing --> Theme["theme/*"]
+AddListing --> Navigation["navigation/*"]
 ```
 
 **Diagram sources**
-- [ListingsScreen.tsx:5-8](file://frontend/screens/ListingsScreen.tsx#L5-L8)
-- [AddListingScreen.tsx:4-6](file://frontend/screens/AddListingScreen.tsx#L4-L6)
-- [MarketplaceNavigator.tsx:3-5](file://frontend/navigation/MarketplaceNavigator.tsx#L3-L5)
-- [AppNavigator.tsx:4-5](file://frontend/navigation/AppNavigator.tsx#L4-L5)
-- [App.tsx:3-4](file://frontend/App.tsx#L3-L4)
-- [index.ts:1-3](file://frontend/services/index.ts#L1-L3)
+- [AddListingScreen.tsx:1-23](file://frontend/screens/AddListingScreen.tsx#L1-L23)
 
 **Section sources**
-- [ListingsScreen.tsx:5-8](file://frontend/screens/ListingsScreen.tsx#L5-L8)
-- [AddListingScreen.tsx:4-6](file://frontend/screens/AddListingScreen.tsx#L4-L6)
-- [MarketplaceNavigator.tsx:3-5](file://frontend/navigation/MarketplaceNavigator.tsx#L3-L5)
-- [AppNavigator.tsx:4-5](file://frontend/navigation/AppNavigator.tsx#L4-L5)
-- [App.tsx:3-4](file://frontend/App.tsx#L3-L4)
-- [index.ts:1-3](file://frontend/services/index.ts#L1-L3)
+- [AddListingScreen.tsx:1-23](file://frontend/screens/AddListingScreen.tsx#L1-L23)
+- [api.ts:209-255](file://frontend/services/api.ts#L209-L255)
+- [FarmerContext.tsx:23-43](file://frontend/contexts/FarmerContext.tsx#L23-L43)
 
 ## Performance Considerations
-- Keep the placeholder screen lightweight; avoid unnecessary re-renders
-- Defer heavy computations until form implementation
-- Use memoization for derived data when adding complex forms
-- Optimize images and assets if added later
-- Prefer functional components and hooks for efficient updates
 
-[No sources needed since this section provides general guidance]
+### Optimization Strategies
+- **Local State**: Uses React state for efficient re-renders
+- **Memoization**: Crop options are computed once and reused
+- **Conditional Rendering**: Only renders necessary UI elements
+- **Efficient Validation**: Real-time validation without excessive re-renders
+
+### Memory Management
+- Proper cleanup of event listeners and timers
+- Efficient state updates to prevent unnecessary re-renders
+- Reusable components reduce memory footprint
+
+### Network Optimization
+- Debounced API calls where applicable
+- Proper error handling to prevent infinite loops
+- Loading states prevent duplicate requests
 
 ## Troubleshooting Guide
-Common issues and resolutions:
-- Navigation not working: Ensure MarketplaceNavigator registers both screens and that ListingsScreen navigates to the correct route name
-- Header inconsistencies: Verify MarketplaceNavigator options and AppNavigator headerShown settings
-- TypeScript errors: Confirm MarketplaceStackParamList matches route names across screens and navigator
-- Placeholder confusion: Clearly communicate to users that the form is not yet available; consider adding a disabled “Create Listing” button with a tooltip explaining availability
 
-Error handling strategy (future):
-- Validate inputs before submission
-- Display user-friendly error messages near relevant fields
-- Handle network failures with retry options and offline indicators
-- Provide success feedback and auto-navigation after successful creation
+### Common Issues and Solutions
 
-Loading states (future):
-- Show a spinner or disabled submit button during submission
-- Prevent multiple submissions while processing
+**Form Not Submitting:**
+- Check network connectivity and API availability
+- Verify all required fields are properly filled
+- Ensure farmer ID is available from context
 
-Success feedback (future):
-- Show a confirmation banner or modal
-- Optionally navigate back to Listings with the new item visible
+**Validation Errors Persisting:**
+- Clear form state when navigating away
+- Reset validation errors on field changes
+- Check for typos in validation logic
 
-[No sources needed since this section provides general guidance]
+**Navigation Issues:**
+- Verify route parameters are correctly passed
+- Ensure proper navigation stack configuration
+- Check for circular navigation dependencies
+
+**API Integration Problems:**
+- Toggle USE_MOCK flag for testing different scenarios
+- Check API endpoint configurations
+- Verify data format matches expected schema
+
+### Debugging Tips
+- Use console logging for state changes
+- Test with various input combinations
+- Verify form behavior in both create and edit modes
+- Check browser/device console for errors
 
 ## Conclusion
-The AddListingScreen is currently a placeholder that prepares the navigation foundation for a future marketplace listing creation flow. It presents a clear message to users and integrates seamlessly with the existing navigation structure. When implementing the full form, prioritize accessibility, mobile usability, robust validation, and clear feedback to ensure a positive experience for farmers with varying levels of technical literacy.
-
-[No sources needed since this section summarizes without analyzing specific files]
+The AddListingScreen has evolved from a simple placeholder to a robust, production-ready form component that provides an excellent user experience for farmers creating marketplace listings. With comprehensive validation, error handling, and seamless API integration, it successfully bridges the gap between user input and backend data management. The component demonstrates best practices in React Native development including proper state management, accessibility considerations, and mobile optimization.
 
 ## Appendices
 
-### Intended Form Fields and Validation Patterns
-- Crop listings: crop type, quantity, unit, price, location, description
-  - Validation: required fields, numeric ranges, valid currency format
-- Livestock details: animal type, age, weight, health status, photos
-  - Validation: required fields, appropriate units, image constraints
-- Farming supplies: item name, brand, quantity, condition, price
-  - Validation: required fields, inventory counts, condition enum
+### Form Field Specifications
 
-### State Management Recommendations
-- Use local state for single-screen forms
-- Lift state up or use context if sharing data across screens
-- Consider a store for persistent marketplace data
+**Crop Selection:**
+- Type: Dropdown picker with emoji icons
+- Options: Wheat, Rice, Cotton, Maize with bilingual labels
+- Validation: Required field selection
 
-### Backend Integration Points
-- Define data models for listings
-- Implement POST endpoint for creating listings
-- Handle authentication and authorization
-- Return standardized success/error responses
+**Quantity Field:**
+- Type: Numeric input with kg unit
+- Validation: Positive numbers only
+- Format: Integer values representing kilograms
 
-[No sources needed since this section provides general guidance]
+**Price Field:**
+- Type: Numeric input with PKR/kg currency
+- Validation: Positive numbers only
+- Format: Currency values per kilogram
+
+**Location Field:**
+- Type: Text input
+- Validation: Required field
+- Purpose: Geographic location of the listing
+
+**Phone Field:**
+- Type: Phone keypad input
+- Validation: Exactly 11 digits using regex
+- Format: Pakistani phone number format
+
+### API Endpoints Reference
+
+**Create Listing:**
+- Method: POST
+- Endpoint: `/api/listings`
+- Request: `{ farmerId, crop, quantity, price, location, phone }`
+- Response: `{ success: true, listing: newListing }`
+
+**Delete Listing:**
+- Method: DELETE
+- Endpoint: `/api/listings/:id`
+- Response: `{ success: true, message: 'Listing deleted' }`
+
+**Get Listings:**
+- Method: GET
+- Endpoint: `/api/listings?crop=&location=`
+- Response: `{ success: true, listings: [...] }`
+
+### State Management Patterns
+
+**Local State Variables:**
+- Form field values (crop, quantity, price, location, phone)
+- Submission status (submitting)
+- Error tracking (errors object)
+- Edit mode detection (isEditing)
+
+**Context Integration:**
+- Farmer identity from FarmerContext
+- Persistent user session management
+- Cross-screen data sharing
+
+**Component Composition:**
+- Reusable UI components (StateCard, PrimaryButton)
+- Theme-based styling system
+- Consistent design patterns across the application

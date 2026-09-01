@@ -1,0 +1,1 @@
+Run with `npm start` (or `expo start`) to launch the Expo dev server; use `npm run android`, `npm run ios`, or `npm run web` to target platforms. Switch from mock to real backend by setting `USE_MOCK = false` at the top of `services/api.ts` and implementing the TODO `fetch` branches against `BASE_URL`.

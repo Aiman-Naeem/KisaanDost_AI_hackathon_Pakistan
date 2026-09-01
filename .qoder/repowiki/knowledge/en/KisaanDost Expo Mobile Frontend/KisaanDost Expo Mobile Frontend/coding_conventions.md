@@ -1,0 +1,6 @@
+- Each screen is a default-exported functional component that owns its local state and composes reusable `components/ui/*` primitives rather than inline styling.
+- All network calls go through `services/api.ts` functions that return a discriminated union `{ success: true, ... } | { success: false, error: string }`; callers check `result.success` instead of using try/catch for business errors.
+- Every API function in `services/api.ts` begins with an early `if (!USE_MOCK) { throw new Error('Real backend not yet implemented'); }` block so the mock path is always the default and the real backend is opt-in.
+- Visual tokens (colors, spacing, radius, fontSize, fontWeight, lineHeight) are imported from `theme/*` modules and used consistently across all screens and components instead of hard-coded literals.
+- Async side effects in contexts and services guard against concurrent calls using a module-level `inflight` promise variable (see `farmerIdentity.getFarmerId`) so multiple consumers share a single resolution.
+- Audio resources created via `createAudioPlayer` are stored in `useRef` and cleaned up in a `useEffect` return to prevent leaks when screens unmount.

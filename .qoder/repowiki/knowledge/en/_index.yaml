@@ -3,13 +3,23 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-08-31T08:03:44Z"
+exported_at: "2026-09-01T05:20:13Z"
 modules:
     "":
         dir_name: KisaanDost Expo Mobile Frontend
         title: KisaanDost Expo Mobile Frontend
         scope:
             - README.md
+            - frontend/
+        source_files: []
+        children:
+            - frontend
+        depends_on: []
+        related_to: []
+    frontend:
+        dir_name: KisaanDost Expo Mobile Frontend
+        title: KisaanDost Expo Mobile Frontend
+        scope:
             - frontend/
         source_files: []
         children: []

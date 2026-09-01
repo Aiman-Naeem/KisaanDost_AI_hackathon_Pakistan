@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -14,57 +14,60 @@ import {
   setAudioModeAsync,
   createAudioPlayer,
 } from 'expo-audio';
+import { colors } from '../theme/colors';
+import { spacing, radius } from '../theme/spacing';
+import { fontSize, fontWeight } from '../theme/typography';
 
-/** Props for the VoiceRecorder component. */
 export interface VoiceRecorderProps {
-  /**
-   * Called after a recording is successfully stopped with the local file URI.
-   * The parent can use this to trigger API calls or other side effects.
-   */
   onRecordingStop?: (uri: string) => void;
+  onCancel?: () => void;
+  disabled?: boolean;
 }
 
-/**
- * Self-contained voice recorder component.
- * Records audio as .m4a using expo-audio, plays it back locally.
- * Fires onRecordingStop callback when a recording completes.
- */
-export default function VoiceRecorder({ onRecordingStop }: VoiceRecorderProps) {
+function formatTime(totalSeconds: number): string {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+export default function VoiceRecorder({
+  onRecordingStop,
+  onCancel,
+  disabled = false,
+}: VoiceRecorderProps) {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
 
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [permissionGranted, setPermissionGranted] = useState<boolean | null>(
-    null
-  );
+  const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  // Ref to hold the dynamically-created audio player
   const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
 
-  // ── Request permissions & configure audio mode on mount ──────────────
   useEffect(() => {
     (async () => {
       const status = await AudioModule.requestRecordingPermissionsAsync();
       setPermissionGranted(status.granted);
-
       if (status.granted) {
-        await setAudioModeAsync({
-          playsInSilentMode: true,
-          allowsRecording: true,
-        });
+        await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
       }
     })();
-
-    // Clean up the player on unmount
-    return () => {
-      playerRef.current?.remove();
-    };
+    return () => { playerRef.current?.remove(); };
   }, []);
 
-  // ── Start recording ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (!recorderState.isRecording) {
+      setElapsedSeconds(0);
+      return;
+    }
+    const interval = setInterval(() => setElapsedSeconds((p) => p + 1), 1000);
+    return () => clearInterval(interval);
+  }, [recorderState.isRecording]);
+
   const startRecording = async () => {
+    if (disabled) return;
     try {
       setIsPreparing(true);
       await audioRecorder.prepareToRecordAsync();
@@ -76,19 +79,14 @@ export default function VoiceRecorder({ onRecordingStop }: VoiceRecorderProps) {
     }
   };
 
-  // ── Stop recording ──────────────────────────────────────────────────
   const stopRecording = async () => {
     try {
       await audioRecorder.stop();
-      // After stop(), the recording URI is available on the recorder
       const uri = audioRecorder.uri;
       if (uri) {
-        // Release any previous player before creating a new one
         playerRef.current?.remove();
         playerRef.current = createAudioPlayer(uri);
         setRecordingUri(uri);
-
-        // Notify parent that a recording is ready for processing
         onRecordingStop?.(uri);
       }
     } catch (err) {
@@ -96,36 +94,37 @@ export default function VoiceRecorder({ onRecordingStop }: VoiceRecorderProps) {
     }
   };
 
-  // ── Play back the last recording ────────────────────────────────────
+  const cancelRecording = useCallback(async () => {
+    try {
+      await audioRecorder.stop();
+      setRecordingUri(null);
+      onCancel?.();
+    } catch (err) {
+      console.warn('Failed to cancel recording:', err);
+    }
+  }, [audioRecorder, onCancel]);
+
   const playRecording = () => {
     if (!playerRef.current) return;
     playerRef.current.seekTo(0);
     playerRef.current.play();
     setIsPlaying(true);
-
-    // Simple timeout-based stop detection — poll until done
-    const checkPlayback = setInterval(() => {
-      if (!playerRef.current) {
-        clearInterval(checkPlayback);
-        setIsPlaying(false);
-        return;
-      }
-      // AudioPlayer exposes `currentTime` and `duration`
+    const check = setInterval(() => {
+      if (!playerRef.current) { clearInterval(check); setIsPlaying(false); return; }
       const { currentTime, duration } = playerRef.current;
       if (duration > 0 && currentTime >= duration - 0.1) {
         setIsPlaying(false);
-        clearInterval(checkPlayback);
+        clearInterval(check);
       }
     }, 200);
   };
 
-  // ── Permission denied UI ────────────────────────────────────────────
   if (permissionGranted === false) {
     return (
       <View style={styles.wrapper}>
-        <Text style={styles.errorIcon}>🔇</Text>
-        <Text style={styles.errorTitle}>Microphone Access Denied</Text>
-        <Text style={styles.errorMessage}>
+        <Text style={styles.permIcon}>🔇</Text>
+        <Text style={styles.permTitle}>Microphone Access Denied</Text>
+        <Text style={styles.permMessage}>
           KisaanDost needs microphone permission to record your voice.
           Please enable it in your device settings and restart the app.
         </Text>
@@ -133,149 +132,172 @@ export default function VoiceRecorder({ onRecordingStop }: VoiceRecorderProps) {
     );
   }
 
-  // ── Main UI ─────────────────────────────────────────────────────────
+  const isRecording = recorderState.isRecording;
+
   return (
     <View style={styles.wrapper}>
-      {/* Recording indicator */}
-      {recorderState.isRecording && (
+      {isRecording && (
         <View style={styles.recordingIndicator}>
           <View style={styles.redDot} />
-          <Text style={styles.recordingText}>Recording...</Text>
+          <Text style={styles.recordingText}>Recording</Text>
+          <Text style={styles.timerText}>{formatTime(elapsedSeconds)}</Text>
         </View>
       )}
 
-      {/* Record / Stop toggle button */}
       <TouchableOpacity
         style={[
-          styles.recordButton,
-          recorderState.isRecording && styles.recordButtonActive,
+          styles.micButton,
+          isRecording && styles.micButtonRecording,
+          disabled && styles.micButtonDisabled,
         ]}
-        onPress={recorderState.isRecording ? stopRecording : startRecording}
-        disabled={isPreparing}
+        onPress={isRecording ? stopRecording : startRecording}
+        disabled={isPreparing || disabled}
+        activeOpacity={0.7}
       >
         {isPreparing ? (
           <ActivityIndicator color="#fff" size="large" />
+        ) : isRecording ? (
+          <Text style={styles.micIcon}>⏹</Text>
         ) : (
-          <Text style={styles.recordButtonText}>
-            {recorderState.isRecording ? '⏹  Stop Recording' : '🎙️  Start Recording'}
-          </Text>
+          <Text style={styles.micIcon}>🎙️</Text>
         )}
       </TouchableOpacity>
 
-      {/* Play recording button */}
-      {recordingUri && (
+      <Text style={[styles.micLabel, disabled && styles.micLabelDisabled]}>
+        {isPreparing ? 'Preparing...' : isRecording ? 'Tap to Stop' : disabled ? 'Please wait...' : 'Tap to Record'}
+      </Text>
+
+      {isRecording && (
+        <TouchableOpacity style={styles.cancelButton} onPress={cancelRecording}>
+          <Text style={styles.cancelButtonText}>✕ Cancel</Text>
+        </TouchableOpacity>
+      )}
+
+      {recordingUri && !isRecording && !disabled && (
         <TouchableOpacity
           style={[styles.playButton, isPlaying && styles.playButtonActive]}
           onPress={playRecording}
           disabled={isPlaying}
         >
           <Text style={styles.playButtonText}>
-            {isPlaying ? '🔊  Playing...' : '▶️  Play Recording'}
+            {isPlaying ? '🔊 Playing...' : '▶️ Play Recording'}
           </Text>
         </TouchableOpacity>
-      )}
-
-      {/* URI debug info (handy during development) */}
-      {recordingUri && (
-        <Text style={styles.uriText} numberOfLines={2}>
-          Last recording: {recordingUri}
-        </Text>
       )}
     </View>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   wrapper: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: spacing.lg,
     width: '100%',
   },
-
-  // Recording indicator
   recordingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.base,
   },
   redDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#e53935',
-    marginRight: 8,
+    backgroundColor: colors.error,
+    marginRight: spacing.sm,
   },
   recordingText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#e53935',
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.semibold,
+    color: colors.error,
   },
-
-  // Record button
-  recordButton: {
-    backgroundColor: '#2e7d32',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-    minWidth: 220,
+  timerText: {
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.bold,
+    color: colors.error,
+    marginLeft: spacing.sm,
+    fontVariant: ['tabular-nums'],
+  },
+  micButton: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
-  recordButtonActive: {
-    backgroundColor: '#c62828',
+  micButtonRecording: {
+    backgroundColor: colors.error,
   },
-  recordButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+  micButtonDisabled: {
+    backgroundColor: colors.neutral,
+    elevation: 0,
+    shadowOpacity: 0,
   },
-
-  // Play button
+  micIcon: {
+    fontSize: 40,
+  },
+  micLabel: {
+    marginTop: spacing.md,
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSecondary,
+  },
+  micLabelDisabled: {
+    color: colors.textMuted,
+  },
+  cancelButton: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.neutralBorder,
+  },
+  cancelButtonText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSecondary,
+  },
   playButton: {
-    marginTop: 20,
-    backgroundColor: '#1565c0',
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 12,
-    minWidth: 220,
+    marginTop: spacing.base,
+    backgroundColor: colors.info,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    minWidth: 200,
     alignItems: 'center',
-    elevation: 3,
+    elevation: 2,
   },
   playButtonActive: {
     backgroundColor: '#0d47a1',
   },
   playButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.textOnColor,
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.semibold,
   },
-
-  // Debug URI text
-  uriText: {
-    marginTop: 16,
-    fontSize: 11,
-    color: '#999',
-    textAlign: 'center',
-    paddingHorizontal: 16,
-  },
-
-  // Permission denied
-  errorIcon: {
+  permIcon: {
     fontSize: 48,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#c62828',
-    marginBottom: 8,
+  permTitle: {
+    fontSize: fontSize.heading,
+    fontWeight: fontWeight.bold,
+    color: colors.error,
+    marginBottom: spacing.sm,
   },
-  errorMessage: {
-    fontSize: 14,
-    color: '#555',
+  permMessage: {
+    fontSize: fontSize.body,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 16,
+    lineHeight: 24,
+    paddingHorizontal: spacing.base,
   },
 });

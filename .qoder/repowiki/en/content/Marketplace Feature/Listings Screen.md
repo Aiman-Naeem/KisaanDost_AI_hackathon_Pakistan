@@ -5,9 +5,23 @@
 - [ListingsScreen.tsx](file://frontend/screens/ListingsScreen.tsx)
 - [MarketplaceNavigator.tsx](file://frontend/navigation/MarketplaceNavigator.tsx)
 - [AddListingScreen.tsx](file://frontend/screens/AddListingScreen.tsx)
+- [ListingDetailScreen.tsx](file://frontend/screens/ListingDetailScreen.tsx)
 - [AppNavigator.tsx](file://frontend/navigation/AppNavigator.tsx)
-- [App.tsx](file://frontend/App.tsx)
+- [api.ts](file://frontend/services/api.ts)
+- [crops.ts](file://frontend/theme/crops.ts)
+- [EmptyState.tsx](file://frontend/components/ui/EmptyState.tsx)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated ListingsScreen implementation from placeholder to comprehensive crop listing system
+- Added filtering capabilities by crop type and location with real-time search
+- Implemented FlatList with pull-to-refresh functionality for dynamic data loading
+- Added delete operations with confirmation dialogs and loading states
+- Integrated floating action button (FAB) for creating new listings
+- Enhanced navigation flow with detailed listing view and edit capabilities
+- Added comprehensive error handling and empty state management
+- Integrated mock API layer for data persistence and CRUD operations
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -15,19 +29,23 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
-10. [Appendices](#appendices)
+6. [Data Management and API Integration](#data-management-and-api-integration)
+7. [User Interface Features](#user-interface-features)
+8. [Navigation Flow](#navigation-flow)
+9. [Performance Considerations](#performance-considerations)
+10. [Troubleshooting Guide](#troubleshooting-guide)
+11. [Conclusion](#conclusion)
+12. [Appendices](#appendices)
 
 ## Introduction
-This document provides detailed documentation for the ListingsScreen component within the marketplace feature. The screen currently serves as a placeholder that introduces users to marketplace listings for crops, livestock, and farming supplies. It includes a title, subtitle text, and a navigation button to AddListingScreen. The styling uses React Native StyleSheet with an agricultural green theme (#2e7d32). TypeScript interfaces define the navigation parameters using MarketplaceStackParamList and NativeStackScreenProps. This document also explains how the screen integrates into the marketplace navigation flow and outlines future enhancements required to implement actual listing display functionality, data fetching from backend APIs, and interactive listing cards.
+The ListingsScreen component has evolved from a simple placeholder into a comprehensive marketplace listing system that displays, filters, and manages agricultural product listings. The screen now provides a complete user experience for browsing crops, livestock, and farming supplies with advanced filtering capabilities, interactive listing cards, and full CRUD operations. It features a modern React Native interface with pull-to-refresh functionality, confirmation dialogs for destructive actions, and seamless navigation between listing views and creation forms.
 
 ## Project Structure
-The marketplace feature is organized under screens and navigation modules:
-- Screens: ListingsScreen.tsx, AddListingScreen.tsx
-- Navigation: MarketplaceNavigator.tsx (stack), AppNavigator.tsx (tabs), App.tsx (root container)
+The marketplace feature is organized within a nested navigation structure:
+- **Screens**: ListingsScreen (main listing view), AddListingScreen (create/edit form), ListingDetailScreen (individual listing details)
+- **Navigation**: MarketplaceNavigator (stack navigator), AppNavigator (bottom tabs)
+- **Services**: Mock API layer with in-memory data storage
+- **Theme**: Consistent styling with agricultural green theme (#2e7d32)
 
 ```mermaid
 graph TB
@@ -35,45 +53,46 @@ A["App.tsx"] --> B["AppNavigator.tsx"]
 B --> C["MarketplaceNavigator.tsx"]
 C --> D["ListingsScreen.tsx"]
 C --> E["AddListingScreen.tsx"]
+C --> F["ListingDetailScreen.tsx"]
+D --> G["api.ts"]
+E --> G
+F --> G
+D --> H["EmptyState.tsx"]
+D --> I["crops.ts"]
 ```
 
 **Diagram sources**
-- [App.tsx:1-14](file://frontend/App.tsx#L1-L14)
 - [AppNavigator.tsx:1-67](file://frontend/navigation/AppNavigator.tsx#L1-L67)
-- [MarketplaceNavigator.tsx:1-31](file://frontend/navigation/MarketplaceNavigator.tsx#L1-L31)
-- [ListingsScreen.tsx:1-64](file://frontend/screens/ListingsScreen.tsx#L1-L64)
-- [AddListingScreen.tsx:1-44](file://frontend/screens/AddListingScreen.tsx#L1-L44)
+- [MarketplaceNavigator.tsx:1-37](file://frontend/navigation/MarketplaceNavigator.tsx#L1-L37)
+- [ListingsScreen.tsx:1-375](file://frontend/screens/ListingsScreen.tsx#L1-L375)
+- [AddListingScreen.tsx:1-298](file://frontend/screens/AddListingScreen.tsx#L1-L298)
+- [ListingDetailScreen.tsx:1-268](file://frontend/screens/ListingDetailScreen.tsx#L1-L268)
 
 **Section sources**
-- [App.tsx:1-14](file://frontend/App.tsx#L1-L14)
 - [AppNavigator.tsx:1-67](file://frontend/navigation/AppNavigator.tsx#L1-L67)
-- [MarketplaceNavigator.tsx:1-31](file://frontend/navigation/MarketplaceNavigator.tsx#L1-L31)
+- [MarketplaceNavigator.tsx:1-37](file://frontend/navigation/MarketplaceNavigator.tsx#L1-L37)
 
 ## Core Components
-- ListingsScreen: Placeholder screen displaying a title, subtitle, and a button to navigate to AddListingScreen. Uses a green-themed style consistent with agricultural branding.
-- MarketplaceNavigator: Defines a native stack navigator containing ListingsScreen and AddListingScreen with a green header theme.
-- AddListingScreen: Placeholder screen for adding new listings with a back navigation button.
-- AppNavigator: Bottom tab navigator that includes the Marketplace stack as one of the tabs.
-- App: Root component wrapping the app with NavigationContainer.
+- **ListingsScreen**: Main marketplace interface with filtering, listing display, and CRUD operations
+- **AddListingScreen**: Comprehensive form for creating and editing listings with validation
+- **ListingDetailScreen**: Detailed view of individual listings with action buttons
+- **MarketplaceNavigator**: Stack navigator managing screen transitions with consistent header styling
+- **API Service Layer**: Mock backend providing data persistence and CRUD operations
+- **UI Components**: Reusable components like EmptyState for consistent user feedback
 
 Key responsibilities:
-- ListingsScreen renders UI and handles navigation to AddListingScreen.
-- MarketplaceNavigator configures stack navigation and shared header styles.
-- AppNavigator organizes top-level tabs and hides the tab header for the Marketplace tab so the stack header takes over.
-- App sets up the global navigation container.
+- ListingsScreen handles data fetching, filtering, display, and user interactions
+- AddListingScreen manages form state, validation, and submission logic
+- ListingDetailScreen provides detailed information and management actions
+- Navigation components coordinate screen transitions and parameter passing
 
 **Section sources**
-- [ListingsScreen.tsx:1-64](file://frontend/screens/ListingsScreen.tsx#L1-L64)
-- [MarketplaceNavigator.tsx:1-31](file://frontend/navigation/MarketplaceNavigator.tsx#L1-L31)
-- [AddListingScreen.tsx:1-44](file://frontend/screens/AddListingScreen.tsx#L1-L44)
-- [AppNavigator.tsx:1-67](file://frontend/navigation/AppNavigator.tsx#L1-L67)
-- [App.tsx:1-14](file://frontend/App.tsx#L1-L14)
+- [ListingsScreen.tsx:52-243](file://frontend/screens/ListingsScreen.tsx#L52-L243)
+- [AddListingScreen.tsx:35-244](file://frontend/screens/AddListingScreen.tsx#L35-L244)
+- [ListingDetailScreen.tsx:38-196](file://frontend/screens/ListingDetailScreen.tsx#L38-L196)
 
 ## Architecture Overview
-The marketplace navigation is a nested structure:
-- Root: App.tsx wraps everything in NavigationContainer.
-- Tabs: AppNavigator creates bottom tabs; Marketplace tab contains a stack navigator.
-- Stack: MarketplaceNavigator defines ListingsScreen and AddListingScreen with a green header theme.
+The marketplace follows a clean separation of concerns with distinct layers:
 
 ```mermaid
 sequenceDiagram
@@ -81,196 +100,315 @@ participant User as "User"
 participant TabNav as "AppNavigator"
 participant StackNav as "MarketplaceNavigator"
 participant Listings as "ListingsScreen"
-participant AddListing as "AddListingScreen"
+participant API as "API Service"
+participant Detail as "ListingDetailScreen"
+participant AddForm as "AddListingScreen"
 User->>TabNav : Open Marketplace tab
 TabNav->>StackNav : Render Marketplace stack
 StackNav->>Listings : Show ListingsScreen
-User->>Listings : Tap "+ Add New Listing"
-Listings->>StackNav : Navigate to "AddListingScreen"
-StackNav->>AddListing : Show AddListingScreen
-User->>AddListing : Tap "Back to Listings"
-AddListing->>StackNav : Go back
-StackNav->>Listings : Return to ListingsScreen
+Listings->>API : Fetch listings with filters
+API-->>Listings : Return filtered results
+User->>Listings : Tap listing card
+Listings->>StackNav : Navigate to detail
+StackNav->>Detail : Show listing details
+User->>Detail : Tap Edit/Delete
+Detail->>StackNav : Navigate to add/edit
+StackNav->>AddForm : Show form with pre-filled data
+User->>AddForm : Submit form
+AddForm->>API : Create/update listing
+API-->>AddForm : Success response
+AddForm->>StackNav : Go back to listings
 ```
 
 **Diagram sources**
 - [AppNavigator.tsx:14-59](file://frontend/navigation/AppNavigator.tsx#L14-L59)
-- [MarketplaceNavigator.tsx:9-29](file://frontend/navigation/MarketplaceNavigator.tsx#L9-L29)
-- [ListingsScreen.tsx:12-28](file://frontend/screens/ListingsScreen.tsx#L12-L28)
-- [AddListingScreen.tsx:8-19](file://frontend/screens/AddListingScreen.tsx#L8-L19)
+- [MarketplaceNavigator.tsx:12-34](file://frontend/navigation/MarketplaceNavigator.tsx#L12-L34)
+- [ListingsScreen.tsx:62-119](file://frontend/screens/ListingsScreen.tsx#L62-L119)
+- [ListingDetailScreen.tsx:72-108](file://frontend/screens/ListingDetailScreen.tsx#L72-L108)
 
 ## Detailed Component Analysis
 
-### ListingsScreen
-- Purpose: Placeholder screen introducing marketplace listings for crops, livestock, and farming supplies.
-- UI elements:
-  - Title: “Marketplace Listings”
-  - Subtitle: Descriptive text indicating categories and placeholder status
-  - Button: “+ Add New Listing” navigates to AddListingScreen
-- Styling:
-  - Container background: light gray
-  - Title color: #2e7d32 (green)
-  - Button background: #2e7d32 (green)
-  - Button text: white
-  - Subtitle: centered with line spacing
-- TypeScript:
-  - Defines MarketplaceStackParamList with ListingsScreen and AddListingScreen routes
-  - Uses NativeStackScreenProps typed to MarketplaceStackParamList and 'ListingsScreen'
-- Navigation integration:
-  - Uses navigation.navigate('AddListingScreen')
-  - Integrated via MarketplaceNavigator which registers both screens
+### ListingsScreen - Enhanced Implementation
+The ListingsScreen has been completely redesigned to provide a full-featured marketplace experience:
 
+**Core Features:**
+- **Dynamic Data Loading**: Uses `useIsFocused` hook to automatically refresh data when screen becomes active
+- **Advanced Filtering**: Crop type selector using Picker component and location text input with real-time filtering
+- **Interactive List Display**: FlatList with custom renderItem showing detailed listing cards
+- **Pull-to-Refresh**: RefreshControl for manual data updates
+- **Delete Operations**: Confirmation dialogs with loading states and error handling
+- **Floating Action Button**: FAB for quick access to create new listings
+- **Empty State Management**: Contextual empty states based on filter criteria
+
+**State Management:**
+- `listings`: Array of listing objects from API
+- `loading`: Initial loading state for first data fetch
+- `refreshing`: Pull-to-refresh indicator state
+- `cropFilter`: Selected crop type filter
+- `locationFilter`: Text-based location search
+- `deletingId`: Currently deleting listing ID for UI feedback
+
+**Data Flow:**
 ```mermaid
 flowchart TD
-Start(["Render ListingsScreen"]) --> Title["Display Title"]
-Title --> Subtitle["Display Subtitle"]
-Subtitle --> Button["Show '+ Add New Listing' Button"]
-Button --> Press{"User taps button?"}
-Press --> |Yes| Navigate["Navigate to AddListingScreen"]
-Press --> |No| End(["Idle"])
-Navigate --> End
+Start(["Screen Focus"]) --> CheckFilters{"Filters Changed?"}
+CheckFilters --> |Yes| ApplyFilters["Apply Filters"]
+CheckFilters --> |No| SkipFilters["Skip Filter Application"]
+ApplyFilters --> FetchData["Fetch Listings from API"]
+SkipFilters --> FetchData
+FetchData --> UpdateState["Update State with Results"]
+UpdateState --> RenderList["Render FlatList"]
+RenderList --> UserAction{"User Action?"}
+UserAction --> |Filter Change| CheckFilters
+UserAction --> |Delete| ConfirmDelete["Show Confirmation Dialog"]
+UserAction --> |Tap Card| NavigateDetail["Navigate to Detail"]
+UserAction --> |FAB| NavigateCreate["Navigate to Create"]
+ConfirmDelete --> DeleteAPI["Call Delete API"]
+DeleteAPI --> RefreshList["Refresh Listing List"]
 ```
 
-**Diagram sources**
-- [ListingsScreen.tsx:12-28](file://frontend/screens/ListingsScreen.tsx#L12-L28)
+**Section sources**
+- [ListingsScreen.tsx:52-243](file://frontend/screens/ListingsScreen.tsx#L52-L243)
+
+### AddListingScreen - Form Management
+Enhanced form with comprehensive validation and editing capabilities:
+
+**Features:**
+- **Edit Mode Support**: Detects editing vs. creating mode via route parameters
+- **Field Validation**: Real-time validation with visual error indicators
+- **API Error Mapping**: Converts backend errors to specific field errors
+- **Loading States**: Submit button loading indicator during form submission
+- **Keyboard Handling**: KeyboardAvoidingView for better mobile UX
+
+**Validation Rules:**
+- Quantity: Must be positive number
+- Price: Must be positive number  
+- Location: Required field
+- Phone: Exactly 11 digits format
 
 **Section sources**
-- [ListingsScreen.tsx:1-64](file://frontend/screens/ListingsScreen.tsx#L1-L64)
+- [AddListingScreen.tsx:35-129](file://frontend/screens/AddListingScreen.tsx#L35-L129)
 
-### MarketplaceNavigator
-- Purpose: Creates a native stack navigator for marketplace screens with a green header theme.
-- Screens:
-  - ListingsScreen with title “Marketplace”
-  - AddListingScreen with title “Add Listing”
-- Styling:
-  - Header background: #2e7d32
-  - Header text color: white
-  - Header title font weight: bold
+### ListingDetailScreen - Individual Listing View
+Comprehensive detail view with management capabilities:
 
-**Section sources**
-- [MarketplaceNavigator.tsx:1-31](file://frontend/navigation/MarketplaceNavigator.tsx#L1-L31)
-
-### AddListingScreen
-- Purpose: Placeholder screen for creating new listings.
-- UI elements:
-  - Title: “Add New Listing”
-  - Subtitle: Indicates form coming soon
-  - Button: “Back to Listings” navigates back
-- Integration:
-  - Imported by MarketplaceNavigator
-  - Uses navigation.goBack()
+**Features:**
+- **Rich Display**: Shows all listing details with formatted dates and currency
+- **Action Buttons**: Call farmer, edit, and delete operations
+- **Error Handling**: Graceful handling of missing or deleted listings
+- **Relative Dates**: Human-readable date formatting (e.g., "2 days ago")
 
 **Section sources**
-- [AddListingScreen.tsx:1-44](file://frontend/screens/AddListingScreen.tsx#L1-L44)
+- [ListingDetailScreen.tsx:38-196](file://frontend/screens/ListingDetailScreen.tsx#L38-L196)
 
-### AppNavigator and App
-- AppNavigator:
-  - Bottom tab navigator with VoiceAssistant and Marketplace tabs
-  - Marketplace tab hides its own header so the stack header from MarketplaceNavigator is used
-  - Active tab color: #2e7d32
-- App:
-  - Wraps AppNavigator in NavigationContainer
-  - Sets status bar style
+## Data Management and API Integration
+The application uses a sophisticated mock API layer that simulates backend behavior:
 
-**Section sources**
-- [AppNavigator.tsx:1-67](file://frontend/navigation/AppNavigator.tsx#L1-L67)
-- [App.tsx:1-14](file://frontend/App.tsx#L1-L14)
-
-## Dependency Analysis
-- ListingsScreen depends on:
-  - React Native core components (View, Text, TouchableOpacity)
-  - @react-navigation/native-stack types (NativeStackScreenProps)
-  - Navigation provided by MarketplaceNavigator
-- MarketplaceNavigator depends on:
-  - @react-navigation/native-stack
-  - ListingsScreen and AddListingScreen components
-- AppNavigator depends on:
-  - @react-navigation/bottom-tabs
-  - MarketplaceNavigator
-- App depends on:
-  - @react-navigation/native (NavigationContainer)
-  - AppNavigator
-
+### API Layer Architecture
 ```mermaid
 graph LR
-Listings["ListingsScreen.tsx"] --> NavTypes["@react-navigation/native-stack types"]
-Marketplace["MarketplaceNavigator.tsx"] --> Listings
-Marketplace --> AddListing["AddListingScreen.tsx"]
-AppNav["AppNavigator.tsx"] --> Marketplace
-AppRoot["App.tsx"] --> AppNav
+A["ListingsScreen"] --> B["getListings()"]
+C["AddListingScreen"] --> D["createListing()"]
+E["ListingDetailScreen"] --> F["getListingById()"]
+G["All Screens"] --> H["deleteListing()"]
+B --> I["Mock Storage"]
+D --> I
+F --> I
+H --> I
+I --> J["In-memory Array"]
 ```
 
 **Diagram sources**
-- [ListingsScreen.tsx:1-10](file://frontend/screens/ListingsScreen.tsx#L1-L10)
-- [MarketplaceNavigator.tsx:1-7](file://frontend/navigation/MarketplaceNavigator.tsx#L1-L7)
-- [AddListingScreen.tsx:1-6](file://frontend/screens/AddListingScreen.tsx#L1-L6)
-- [AppNavigator.tsx:1-12](file://frontend/navigation/AppNavigator.tsx#L1-L12)
-- [App.tsx:1-5](file://frontend/App.tsx#L1-L5)
+- [api.ts:264-289](file://frontend/services/api.ts#L264-L289)
+- [api.ts:209-255](file://frontend/services/api.ts#L209-L255)
+- [api.ts:297-312](file://frontend/services/api.ts#L297-L312)
+- [api.ts:320-337](file://frontend/services/api.ts#L320-L337)
+
+### Data Types and Interfaces
+- **Crop**: Enum type ('wheat' | 'rice' | 'cotton' | 'maize')
+- **Listing**: Complete listing object with metadata
+- **ListingInput**: Partial data for creating/updating listings
+- **ApiResponse**: Generic response wrapper for success/error handling
+
+### Mock Data Management
+- **Seed Data**: Pre-populated with 3 sample listings
+- **CRUD Operations**: Full create, read, update, delete functionality
+- **Filtering**: Client-side filtering by crop type and location
+- **Persistence**: In-memory storage that resets on app restart
 
 **Section sources**
-- [ListingsScreen.tsx:1-10](file://frontend/screens/ListingsScreen.tsx#L1-L10)
-- [MarketplaceNavigator.tsx:1-7](file://frontend/navigation/MarketplaceNavigator.tsx#L1-L7)
-- [AddListingScreen.tsx:1-6](file://frontend/screens/AddListingScreen.tsx#L1-L6)
-- [AppNavigator.tsx:1-12](file://frontend/navigation/AppNavigator.tsx#L1-L12)
-- [App.tsx:1-5](file://frontend/App.tsx#L1-L5)
+- [api.ts:23-44](file://frontend/services/api.ts#L23-L44)
+- [api.ts:106-137](file://frontend/services/api.ts#L106-L137)
 
-## Performance Considerations
-- Current implementation is lightweight with no data fetching or heavy rendering logic.
-- Future enhancements should consider:
-  - Using FlatList or SectionList for efficient listing rendering
-  - Implementing pagination or infinite scroll for large datasets
-  - Debouncing search/filter inputs if added
-  - Memoizing expensive computations or list items where appropriate
-  - Avoiding unnecessary re-renders by keeping state local and minimal
+## User Interface Features
 
-[No sources needed since this section provides general guidance]
+### Advanced Filtering System
+The screen implements a dual-filtering approach:
 
-## Troubleshooting Guide
-- Navigation issues:
-  - Ensure MarketplaceNavigator registers both ListingsScreen and AddListingScreen with correct names matching navigation calls.
-  - Verify that navigation.navigate('AddListingScreen') matches the registered screen name in MarketplaceNavigator.
-- Styling inconsistencies:
-  - Confirm that the green theme (#2e7d32) is consistently applied across headers and buttons.
-  - Check that headerShown is false at the tab level for Marketplace so the stack header displays correctly.
-- TypeScript errors:
-  - Ensure MarketplaceStackParamList includes all route names used in navigation.
-  - Confirm NativeStackScreenProps types align with the defined param list.
+**Crop Type Filter:**
+- Dropdown picker with emoji icons and bilingual labels
+- Options include All Crops, Wheat, Rice, Cotton, Maize
+- Instant filtering without page reload
+
+**Location Search:**
+- Text input with placeholder guidance
+- Case-insensitive substring matching
+- Real-time search as user types
+
+### Interactive Listing Cards
+Each listing card displays:
+- **Crop Badge**: Color-coded badge with crop icon and name
+- **Quantity**: Formatted with thousands separator and unit (kg)
+- **Price**: PKR currency with per-kg pricing
+- **Location**: Geographic information
+- **Phone**: Contact information
+- **Delete Button**: Quick delete with confirmation
+
+### Responsive Design Elements
+- **Pull-to-Refresh**: Native refresh control for data updates
+- **Loading States**: Skeleton-like loading indicators
+- **Empty States**: Contextual messages based on filter state
+- **Floating Action Button**: Persistent create button with elevation shadow
 
 **Section sources**
-- [MarketplaceNavigator.tsx:17-27](file://frontend/navigation/MarketplaceNavigator.tsx#L17-L27)
-- [ListingsScreen.tsx:21-26](file://frontend/screens/ListingsScreen.tsx#L21-L26)
+- [ListingsScreen.tsx:167-243](file://frontend/screens/ListingsScreen.tsx#L167-L243)
+- [ListingsScreen.tsx:245-375](file://frontend/screens/ListingsScreen.tsx#L245-L375)
+
+## Navigation Flow
+The marketplace implements a three-screen navigation pattern:
+
+### Screen Hierarchy
+1. **ListingsScreen** (Root): Main marketplace interface
+2. **ListingDetailScreen**: Individual listing details and management
+3. **AddListingScreen**: Create new or edit existing listings
+
+### Navigation Patterns
+- **Forward Navigation**: Listings → Details → Add/Edit
+- **Back Navigation**: Details → Listings, Add/Edit → Listings
+- **Parameter Passing**: Listing IDs and initial data passed between screens
+- **Stack Management**: Proper use of navigation.goBack() and popToTop()
+
+### Header Configuration
+- **Consistent Theme**: Green header (#2e7d32) across all marketplace screens
+- **Dynamic Titles**: Screen-specific titles (Marketplace, Listing Details, Add Listing)
+- **Tab Integration**: Marketplace tab hides its own header to show stack header
+
+**Section sources**
+- [MarketplaceNavigator.tsx:12-34](file://frontend/navigation/MarketplaceNavigator.tsx#L12-L34)
 - [AppNavigator.tsx:46-58](file://frontend/navigation/AppNavigator.tsx#L46-L58)
 
-## Conclusion
-ListingsScreen currently acts as a placeholder within the marketplace feature, providing a clear entry point and navigation to AddListingScreen. It follows a consistent green theme aligned with agricultural branding and integrates seamlessly into the nested navigation structure. To evolve into a fully functional marketplace listing view, implement data fetching, dynamic listing cards, filtering/search capabilities, and robust error handling while maintaining performance and accessibility standards.
+## Performance Considerations
+The implementation includes several performance optimizations:
 
-[No sources needed since this section summarizes without analyzing specific files]
+### Data Fetching Optimization
+- **Conditional Fetching**: Only fetches data when screen is focused
+- **Filter-Based Caching**: Leverages API-level filtering to reduce data transfer
+- **Debounced Updates**: Efficient state updates with useCallback hooks
+
+### Rendering Optimization
+- **FlatList Usage**: Optimized list rendering for large datasets
+- **Key Extraction**: Unique keys using listing IDs for efficient re-renders
+- **Memoization**: Callback functions wrapped in useCallback for performance
+
+### Memory Management
+- **State Cleanup**: Proper cleanup of loading states and temporary variables
+- **Event Listener Management**: useEffect dependencies properly managed
+- **Memory Leak Prevention**: Cleanup functions in useEffect hooks
+
+## Troubleshooting Guide
+
+### Common Issues and Solutions
+
+**Data Not Loading:**
+- Verify network connectivity if using real backend
+- Check console for API error messages
+- Ensure proper focus state handling with useIsFocused
+
+**Filtering Not Working:**
+- Confirm filter state updates are triggering re-renders
+- Check API filter parameter construction
+- Verify case sensitivity in location searches
+
+**Navigation Errors:**
+- Ensure screen names match exactly in navigation calls
+- Verify route parameters are properly typed and passed
+- Check for circular navigation patterns
+
+**Form Validation Issues:**
+- Review validation rules in AddListingScreen
+- Check error mapping from API responses
+- Verify field binding and state updates
+
+**Performance Problems:**
+- Monitor FlatList performance with large datasets
+- Check for unnecessary re-renders in component tree
+- Verify proper key usage in list items
+
+**Section sources**
+- [ListingsScreen.tsx:81-86](file://frontend/screens/ListingsScreen.tsx#L81-L86)
+- [AddListingScreen.tsx:56-77](file://frontend/screens/AddListingScreen.tsx#L56-L77)
+
+## Conclusion
+The ListingsScreen has transformed from a simple placeholder into a comprehensive marketplace solution that provides farmers with a complete platform for buying and selling agricultural products. The implementation demonstrates modern React Native development practices including proper state management, error handling, user experience optimization, and scalable architecture. The integration with a mock API layer provides a foundation for easy transition to a real backend while maintaining consistent interfaces throughout the application.
 
 ## Appendices
 
 ### TypeScript Interfaces and Types
-- MarketplaceStackParamList:
-  - Defines route names for ListingsScreen and AddListingScreen
-- NativeStackScreenProps:
-  - Used to type props for both ListingsScreen and AddListingScreen based on MarketplaceStackParamList
+
+**MarketplaceStackParamList:**
+```typescript
+type MarketplaceStackParamList = {
+  ListingsScreen: undefined;
+  ListingDetailScreen: { listingId: string };
+  AddListingScreen: {
+    editingListingId?: string;
+    initialData?: {
+      crop: Crop;
+      quantity: number;
+      price: number;
+      location: string;
+      phone: string;
+    };
+  };
+};
+```
+
+**Core Data Types:**
+- **Crop**: Enum defining supported crop types
+- **Listing**: Complete listing object with metadata
+- **ListingInput**: Partial data for form submissions
+- **ApiResponse**: Generic response wrapper for API calls
 
 **Section sources**
-- [ListingsScreen.tsx:5-10](file://frontend/screens/ListingsScreen.tsx#L5-L10)
-- [AddListingScreen.tsx:4-6](file://frontend/screens/AddListingScreen.tsx#L4-L6)
+- [ListingsScreen.tsx:26-41](file://frontend/screens/ListingsScreen.tsx#L26-L41)
+- [api.ts:23-44](file://frontend/services/api.ts#L23-L44)
 
 ### Future Enhancements
-- Data layer:
-  - Integrate API client to fetch listings from backend endpoints
-  - Implement caching strategies (e.g., React Query or SWR) for improved performance
-- UI improvements:
-  - Replace placeholder text with dynamic content
-  - Add interactive listing cards with images, prices, and details
-  - Add filters and search for crops, livestock, and supplies
-- State management:
-  - Manage loading, error, and empty states
-  - Handle user interactions like favorites, sharing, and reporting
-- Accessibility:
-  - Ensure proper labels and keyboard navigation
-  - Provide high contrast options and scalable text
 
-[No sources needed since this section provides general guidance]
+**Backend Integration:**
+- Replace mock API with real backend endpoints
+- Implement authentication and authorization
+- Add real-time updates with WebSocket connections
+- Implement pagination for large datasets
+
+**Advanced Features:**
+- Image upload and processing for listings
+- Advanced search with multiple criteria
+- Favorites and bookmarking system
+- Rating and review system for sellers
+
+**Performance Improvements:**
+- Implement caching strategies with React Query or SWR
+- Add offline support with local database
+- Optimize image loading and compression
+- Implement virtual scrolling for very large lists
+
+**Accessibility:**
+- Screen reader support for all interactive elements
+- High contrast mode support
+- Keyboard navigation throughout the app
+- Voice command support for hands-free operation
+
+**Section sources**
+- [api.ts:13-17](file://frontend/services/api.ts#L13-L17)
+- [ListingsScreen.tsx:62-79](file://frontend/screens/ListingsScreen.tsx#L62-L79)

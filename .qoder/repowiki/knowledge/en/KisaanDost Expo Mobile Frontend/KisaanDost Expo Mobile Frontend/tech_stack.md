@@ -1,0 +1,1 @@
+Expo SDK ~57 with React Native 0.86, TypeScript ~6, @react-navigation (bottom-tabs + native-stack), expo-audio for recording/TTS playback, @react-native-async-storage/async-storage for persistent farmer identity, react-native-safe-area-context and react-native-web for cross-platform support.

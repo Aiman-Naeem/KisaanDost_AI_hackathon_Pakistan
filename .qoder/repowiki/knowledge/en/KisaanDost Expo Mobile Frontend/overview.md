@@ -1,1 +1,1 @@
-Expo-based React Native mobile app providing a voice assistant and marketplace for farmers, with tab-based navigation and microphone-enabled voice recording.
+Expo-based React Native mobile app that lets farmers record voice queries in Urdu and browse a crop listing marketplace, orchestrated through tab-based navigation and shared services.

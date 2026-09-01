@@ -1,0 +1,7 @@
+The app is structured as a standard Expo/React Native project with clear layering:
+- Entry point `App.tsx` wraps the tree in `NavigationContainer` and `FarmerProvider`, then renders `AppNavigator`.
+- Navigation (`navigation/AppNavigator.tsx`) uses a bottom tab navigator with two tabs: `VoiceAssistantScreen` and a nested `MarketplaceNavigator` (stack) for listings.
+- Global state lives in `contexts/FarmerContext.tsx`, which loads a persistent `farmerId` via `services/farmerIdentity.ts` on mount and exposes it through a React context hook; screens consume it via `useFarmerContext()`.
+- The data layer is `services/api.ts`, a single module exporting typed endpoints (`sendVoiceQuery`, `createListing`, `getListings`, `getListingById`, `deleteListing`) over an in-memory `mockListings` store. A top-level `USE_MOCK` flag gates every endpoint so switching to a real backend requires only replacing the mock branch with `fetch(BASE_URL + ...)` calls — screens never know which implementation is active.
+- UI is split into feature screens under `screens/` and reusable primitives under `components/ui/` (`EmptyState`, `PrimaryButton`, `StateCard`). Cross-cutting concerns are isolated: `utils/audio.ts` handles base64 TTS audio decoding/temp file cleanup, `theme/` centralizes colors, spacing, typography, and crop enums.
+- Dependency direction is strictly one-way: screens → components/services/contexts/theme; services have no UI dependencies; contexts depend only on identity service.

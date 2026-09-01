@@ -1,47 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TextInput,
-  TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { createListing } from '../services/api';
+import { createListing, deleteListing } from '../services/api';
 import type { Crop } from '../services/api';
 import type { MarketplaceStackParamList } from './ListingsScreen';
+import { useFarmerContext } from '../contexts/FarmerContext';
+import { StateCard, PrimaryButton } from '../components/ui';
+import { colors } from '../theme/colors';
+import { spacing, radius } from '../theme/spacing';
+import { fontSize, fontWeight } from '../theme/typography';
+import { cropDisplay } from '../theme/crops';
 
-// ── Types ──────────────────────────────────────────────────────────────────
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'AddListingScreen'>;
 
-const CROP_OPTIONS: { label: string; value: Crop }[] = [
-  { label: 'Wheat (گندم)', value: 'wheat' },
-  { label: 'Rice (چاول)', value: 'rice' },
-  { label: 'Cotton (کپاس)', value: 'cotton' },
-  { label: 'Maize (مکئی)', value: 'maize' },
-];
+const CROP_OPTIONS: { label: string; value: Crop }[] = (
+  Object.entries(cropDisplay) as [Crop, { icon: string; labelFull: string }][]
+).map(([key, val]) => ({
+  label: `${val.icon} ${val.labelFull}`,
+  value: key,
+}));
 
-/** Hardcoded farmer ID placeholder — will come from auth context later. */
-const PLACEHOLDER_FARMER_ID = 'farmer_001';
-
-// ── Field error map ────────────────────────────────────────────────────────
 type FieldErrors = Partial<Record<'crop' | 'quantity' | 'price' | 'location' | 'phone' | 'general', string>>;
 
-export default function AddListingScreen({ navigation }: Props) {
-  const [crop, setCrop] = useState<Crop>('wheat');
-  const [quantity, setQuantity] = useState('');
-  const [price, setPrice] = useState('');
-  const [location, setLocation] = useState('');
-  const [phone, setPhone] = useState('');
+export default function AddListingScreen({ route, navigation }: Props) {
+  const { farmerId } = useFarmerContext();
+
+  const editingListingId = route.params?.editingListingId;
+  const initialData = route.params?.initialData;
+  const isEditing = !!editingListingId;
+
+  useEffect(() => {
+    if (isEditing) {
+      navigation.setOptions({ title: 'Edit Listing' });
+    }
+  }, [isEditing, navigation]);
+
+  const [crop, setCrop] = useState<Crop>(initialData?.crop ?? 'wheat');
+  const [quantity, setQuantity] = useState(initialData?.quantity?.toString() ?? '');
+  const [price, setPrice] = useState(initialData?.price?.toString() ?? '');
+  const [location, setLocation] = useState(initialData?.location ?? '');
+  const [phone, setPhone] = useState(initialData?.phone ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
 
-  // ── Client-side validation ────────────────────────────────────────────────
   const validate = (): FieldErrors => {
     const e: FieldErrors = {};
     if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) <= 0)
@@ -55,7 +66,6 @@ export default function AddListingScreen({ navigation }: Props) {
     return e;
   };
 
-  // ── Map an API field-error string to our FieldErrors key ─────────────────
   const mapApiError = (apiError: string): FieldErrors => {
     const lower = apiError.toLowerCase();
     if (lower.includes('quantity')) return { quantity: apiError };
@@ -66,7 +76,6 @@ export default function AddListingScreen({ navigation }: Props) {
     return { general: apiError };
   };
 
-  // ── Submit handler ────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -76,25 +85,44 @@ export default function AddListingScreen({ navigation }: Props) {
     setErrors({});
     setSubmitting(true);
 
-    try {
-      const result = await createListing({
-        farmerId: PLACEHOLDER_FARMER_ID,
-        crop,
-        quantity: Number(quantity),
-        price: Number(price),
-        location: location.trim(),
-        phone: phone.trim(),
-      });
+    const listingData = {
+      farmerId: farmerId ?? undefined,
+      crop,
+      quantity: Number(quantity),
+      price: Number(price),
+      location: location.trim(),
+      phone: phone.trim(),
+    };
 
-      if (result.success) {
-        // Navigate back; ListingsScreen re-fetches via useIsFocused
-        navigation.goBack();
+    try {
+      if (isEditing && editingListingId) {
+        const deleteResult = await deleteListing(editingListingId);
+        if (!deleteResult.success) {
+          setErrors({ general: 'Could not delete the original listing. Please try again.' });
+          return;
+        }
+        const createResult = await createListing(listingData);
+        if (createResult.success) {
+          navigation.popToTop();
+        } else {
+          Alert.alert(
+            'Update Failed',
+            'The original listing was deleted, but the updated listing could not be saved. ' +
+            'Please create a new listing with your changes.',
+            [{ text: 'OK', onPress: () => navigation.popToTop() }]
+          );
+        }
       } else {
-        setErrors(mapApiError((result as any).error ?? 'Submission failed'));
+        const result = await createListing(listingData);
+        if (result.success) {
+          navigation.goBack();
+        } else {
+          setErrors(mapApiError((result as any).error ?? 'Submission failed'));
+        }
       }
     } catch (err) {
       setErrors({ general: 'Something went wrong, please try again.' });
-      console.warn('createListing failed:', err);
+      console.warn('Listing submission failed:', err);
     } finally {
       setSubmitting(false);
     }
@@ -108,9 +136,22 @@ export default function AddListingScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         {/* ── General error ─────────────────────────────────────────── */}
         {errors.general && (
-          <View style={styles.generalError}>
-            <Text style={styles.generalErrorText}>{errors.general}</Text>
-          </View>
+          <StateCard
+            variant="error"
+            icon="⚠️"
+            title="Error"
+            description={errors.general}
+          />
+        )}
+
+        {/* ── Edit mode notice ──────────────────────────────────────── */}
+        {isEditing && (
+          <StateCard
+            variant="info"
+            icon="✏️"
+            title="Editing Listing"
+            description="Changes will be saved as a new listing."
+          />
         )}
 
         {/* ── Crop ──────────────────────────────────────────────────── */}
@@ -120,7 +161,7 @@ export default function AddListingScreen({ navigation }: Props) {
             selectedValue={crop}
             onValueChange={(val) => setCrop(val as Crop)}
             style={styles.picker}
-            dropdownIconColor="#2e7d32"
+            dropdownIconColor={colors.primary}
           >
             {CROP_OPTIONS.map((opt) => (
               <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
@@ -191,108 +232,66 @@ export default function AddListingScreen({ navigation }: Props) {
         {errors.phone && <Text style={styles.fieldError}>{errors.phone}</Text>}
 
         {/* ── Submit ────────────────────────────────────────────────── */}
-        <TouchableOpacity
-          style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+        <PrimaryButton
+          label={isEditing ? 'Save Changes' : 'Post Listing'}
           onPress={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.submitButtonText}>Post Listing</Text>
-          )}
-        </TouchableOpacity>
+          loading={submitting}
+          style={styles.submitButton}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   container: {
     padding: 20,
     paddingBottom: 40,
   },
 
-  // General error banner
-  generalError: {
-    backgroundColor: '#fff3e0',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 16,
-  },
-  generalErrorText: {
-    color: '#e65100',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-
-  // Field labels
   label: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#444',
-    marginTop: 16,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.textSecondary,
+    marginTop: spacing.base,
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
-
-  // Picker
   pickerWrapper: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   picker: {
-    color: '#333',
+    color: colors.textPrimary,
   },
-
-  // Text input
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
-    color: '#333',
+    fontSize: fontSize.body,
+    color: colors.textPrimary,
   },
   inputError: {
-    borderColor: '#c62828',
+    borderColor: colors.error,
   },
-
-  // Field-level error text
   fieldError: {
-    fontSize: 12,
-    color: '#c62828',
-    marginTop: 4,
+    fontSize: fontSize.sm,
+    color: colors.error,
+    marginTop: spacing.xs,
     marginLeft: 2,
   },
-
-  // Submit button
   submitButton: {
-    marginTop: 28,
-    backgroundColor: '#2e7d32',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    elevation: 3,
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#81c784',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '700',
+    marginTop: spacing.lg,
   },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ListingsScreen from '../screens/ListingsScreen';
+import ListingDetailScreen from '../screens/ListingDetailScreen';
 import AddListingScreen from '../screens/AddListingScreen';
 import { MarketplaceStackParamList } from '../screens/ListingsScreen';
 
@@ -19,6 +20,11 @@ export default function MarketplaceNavigator() {
         name="ListingsScreen"
         component={ListingsScreen}
         options={{ title: 'Marketplace' }}
+      />
+      <Stack.Screen
+        name="ListingDetailScreen"
+        component={ListingDetailScreen}
+        options={{ title: 'Listing Details' }}
       />
       <Stack.Screen
         name="AddListingScreen"

@@ -1,30 +1,31 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   ScrollView,
   ActivityIndicator,
-  TouchableOpacity,
 } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
 import VoiceRecorder from '../components/VoiceRecorder';
+import { StateCard, PrimaryButton } from '../components/ui';
 import { sendVoiceQuery, type VoiceResponse, type ApiResponse } from '../services/api';
 import { decodeBase64Audio, deleteTempAudio } from '../utils/audio';
-
-/** Hardcoded farmer ID placeholder — will come from auth context later. */
-const PLACEHOLDER_FARMER_ID = 'farmer_001';
+import { useFarmerContext } from '../contexts/FarmerContext';
+import { colors } from '../theme/colors';
+import { spacing, radius } from '../theme/spacing';
+import { fontSize, fontWeight, lineHeight } from '../theme/typography';
 
 export default function VoiceAssistantScreen() {
+  const { farmerId } = useFarmerContext();
   const [isQuerying, setIsQuerying] = useState(false);
   const [response, setResponse] = useState<(VoiceResponse & { success: true }) | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasAudio, setHasAudio] = useState(false);
 
-  // Ref to hold the TTS audio player so we can clean up on unmount
   const ttsPlayerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
   const ttsFileUriRef = useRef<string | null>(null);
 
-  // Clean up TTS resources on unmount
   useEffect(() => {
     return () => {
       ttsPlayerRef.current?.remove();
@@ -34,46 +35,52 @@ export default function VoiceAssistantScreen() {
     };
   }, []);
 
-  /**
-   * Called by VoiceRecorder when the user stops recording.
-   * Sends the audio to the API, decodes the response audio, and autoplays it.
-   */
-  const handleRecordingStop = async (audioUri: string) => {
-    // Reset previous state
+  const resetState = useCallback(() => {
     setError(null);
     setResponse(null);
+    setHasAudio(false);
     ttsPlayerRef.current?.remove();
+    ttsPlayerRef.current = null;
     if (ttsFileUriRef.current) {
       deleteTempAudio(ttsFileUriRef.current);
       ttsFileUriRef.current = null;
     }
+  }, []);
 
+  const handleCancel = useCallback(() => { resetState(); }, [resetState]);
+  const handleTryAgain = useCallback(() => { resetState(); }, [resetState]);
+
+  const handleReplay = useCallback(() => {
+    if (ttsPlayerRef.current) {
+      ttsPlayerRef.current.seekTo(0);
+      ttsPlayerRef.current.play();
+    }
+  }, []);
+
+  const handleRecordingStop = async (audioUri: string) => {
+    resetState();
     setIsQuerying(true);
 
     try {
-      const result = await sendVoiceQuery(audioUri, PLACEHOLDER_FARMER_ID);
+      const result = await sendVoiceQuery(audioUri, farmerId ?? undefined);
 
-      // Handle failure shape ({ success: false, error })
       if ((result as ApiResponse).success === false) {
         setError((result as any).error ?? 'Something went wrong, please try again.');
         return;
       }
 
-      // Success path — cast to VoiceResponse
       const voiceResult = result as VoiceResponse;
       setResponse(voiceResult);
 
-      // Decode base64 audio to a temp file and autoplay
       if (voiceResult.audio_base64) {
         try {
           const fileUri = await decodeBase64Audio(voiceResult.audio_base64);
           ttsFileUriRef.current = fileUri;
-
           const player = createAudioPlayer(fileUri);
           ttsPlayerRef.current = player;
+          setHasAudio(true);
           player.play();
         } catch (audioErr) {
-          // Audio decode/play failure is non-critical — text is still shown
           console.warn('Failed to decode/play TTS audio:', audioErr);
         }
       }
@@ -85,224 +92,209 @@ export default function VoiceAssistantScreen() {
     }
   };
 
+  const isIdle = !isQuerying && !response && !error;
+  const isSending = isQuerying;
+  const isUnrecognized = response?.language === 'unrecognized';
+  const hasResponse = !!response && !isQuerying;
+  const hasError = !!error && !isQuerying;
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Voice Assistant</Text>
       <Text style={styles.subtitle}>
-        Speak to KisaanDost — your AI farming helper.
+        Ask KisaanDost any farming question in Urdu.
       </Text>
 
-      <VoiceRecorder onRecordingStop={handleRecordingStop} />
+      <VoiceRecorder
+        onRecordingStop={handleRecordingStop}
+        onCancel={handleCancel}
+        disabled={isQuerying}
+      />
 
-      {/* ── Loading state ─────────────────────────────────────────────── */}
-      {isQuerying && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2e7d32" />
-          <Text style={styles.loadingText}>Analyzing your question...</Text>
+      {/* ── Sending/Thinking ─────────────────────────────────────────── */}
+      {isSending && (
+        <View style={styles.sendingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={styles.sendingText}>KisaanDost is thinking...</Text>
         </View>
       )}
 
-      {/* ── Error state (success: false from API) ─────────────────────── */}
-      {error && !isQuerying && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>
-            Something went wrong, please try again.
-          </Text>
-          <Text style={styles.errorDetail}>{error}</Text>
-        </View>
+      {/* ── Error state ─────────────────────────────────────────────── */}
+      {hasError && (
+        <StateCard
+          variant="error"
+          icon="⚠️"
+          title="Oops! Something went wrong"
+          description={error ?? undefined}
+          actionLabel="🎙️ Try Again"
+          onAction={handleTryAgain}
+        />
       )}
 
-      {/* ── Response display ──────────────────────────────────────────── */}
-      {response && !isQuerying && (
+      {/* ── Unrecognized language ───────────────────────────────────── */}
+      {hasResponse && isUnrecognized && (
+        <StateCard
+          variant="info"
+          icon="🤔"
+          title="I didn't quite catch that"
+          description={response.answer}
+          actionLabel="🎙️ Try Again"
+          onAction={handleTryAgain}
+        />
+      )}
+
+      {/* ── Successful response ─────────────────────────────────────── */}
+      {hasResponse && !isUnrecognized && (
         <View style={styles.responseContainer}>
-          {/* Language badge */}
-          <View
-            style={[
-              styles.badge,
-              response.language === 'unrecognized'
-                ? styles.badgeWarning
-                : styles.badgeSuccess,
-            ]}
-          >
+          <View style={styles.badge}>
             <Text style={styles.badgeText}>
-              {response.language === 'unrecognized'
-                ? 'Unrecognized'
-                : response.language.charAt(0).toUpperCase() + response.language.slice(1)}
+              {response.language.charAt(0).toUpperCase() + response.language.slice(1)}
             </Text>
           </View>
 
-          {/* Transcription (only show if we got one) */}
           {response.transcription ? (
-            <View style={styles.card}>
-              <Text style={styles.cardLabel}>You said</Text>
-              <Text style={styles.transcriptionText}>
-                {response.transcription}
-              </Text>
+            <View style={styles.transcriptionCard}>
+              <Text style={styles.cardLabel}>🗣️ You said</Text>
+              <Text style={styles.transcriptionText}>{response.transcription}</Text>
             </View>
           ) : null}
 
-          {/* Answer */}
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>KisaanDost says</Text>
+          <View style={styles.answerCard}>
+            <Text style={styles.cardLabel}>🌾 KisaanDost says</Text>
             <Text style={styles.answerText}>{response.answer}</Text>
           </View>
 
-          {/* Replay TTS button */}
-          {ttsPlayerRef.current && (
-            <TouchableOpacity
-              style={styles.replayButton}
-              onPress={() => {
-                ttsPlayerRef.current?.seekTo(0);
-                ttsPlayerRef.current?.play();
-              }}
-            >
-              <Text style={styles.replayButtonText}>Replay Audio Answer</Text>
-            </TouchableOpacity>
+          {hasAudio && (
+            <PrimaryButton
+              label="Replay Answer"
+              icon="🔊"
+              variant="secondary"
+              onPress={handleReplay}
+              style={styles.actionBtn}
+            />
           )}
+
+          <PrimaryButton
+            label="Ask Another Question"
+            variant="primary"
+            onPress={handleTryAgain}
+            style={styles.actionBtn}
+          />
         </View>
       )}
 
-      {/* ── Idle hint ─────────────────────────────────────────────────── */}
-      {!response && !error && !isQuerying && (
-        <Text style={styles.hint}>
-          Tap "Start Recording" and ask a farming question in Urdu.
-        </Text>
+      {/* ── Idle state ──────────────────────────────────────────────── */}
+      {isIdle && (
+        <StateCard
+          variant="neutral"
+          icon="🌱"
+          title="Ask a Farming Question"
+          description={
+            "Tap the microphone button above and speak your question in Urdu.\nKisaanDost will listen and give you farming advice."
+          }
+        />
       )}
     </ScrollView>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
     alignItems: 'center',
-    padding: 24,
+    padding: spacing.lg,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#2e7d32',
-    marginBottom: 8,
+    fontSize: fontSize.hero,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#555',
+    fontSize: fontSize.body,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 8,
-  },
-  hint: {
-    fontSize: 13,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 24,
-    lineHeight: 20,
+    lineHeight: lineHeight.normal,
+    marginBottom: spacing.sm,
   },
 
-  // Loading
-  loadingContainer: {
+  // Sending
+  sendingContainer: {
     alignItems: 'center',
-    marginTop: 24,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 15,
-    color: '#2e7d32',
-    fontWeight: '500',
-  },
-
-  // Error
-  errorContainer: {
-    marginTop: 24,
-    backgroundColor: '#fff3e0',
-    borderRadius: 12,
-    padding: 16,
+    marginTop: spacing.lg,
+    padding: spacing.lg,
+    backgroundColor: colors.accentLight,
+    borderRadius: radius.lg,
     width: '100%',
-    alignItems: 'center',
   },
-  errorText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#e65100',
-    textAlign: 'center',
-  },
-  errorDetail: {
-    marginTop: 6,
-    fontSize: 12,
-    color: '#bf360c',
-    textAlign: 'center',
+  sendingText: {
+    marginTop: spacing.md,
+    fontSize: fontSize.body,
+    color: colors.accentDark,
+    fontWeight: fontWeight.semibold,
   },
 
   // Response
   responseContainer: {
-    marginTop: 24,
+    marginTop: spacing.lg,
     width: '100%',
     alignItems: 'center',
   },
-
-  // Language badge
   badge: {
-    paddingHorizontal: 14,
+    paddingHorizontal: spacing.base,
     paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-  badgeSuccess: {
-    backgroundColor: '#e8f5e9',
-  },
-  badgeWarning: {
-    backgroundColor: '#fff8e1',
+    borderRadius: radius.xl,
+    backgroundColor: colors.successLight,
+    marginBottom: spacing.base,
   },
   badgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#333',
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
   },
-
-  // Cards
-  card: {
+  transcriptionCard: {
     width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.base,
+    padding: spacing.base,
+    marginBottom: spacing.md,
     elevation: 1,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.neutral,
+  },
+  answerCard: {
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: radius.base,
+    padding: spacing.base,
+    marginBottom: spacing.base,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
   cardLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#999',
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 6,
+    marginBottom: spacing.sm,
   },
   transcriptionText: {
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 24,
+    fontSize: fontSize.body,
+    color: colors.textPrimary,
+    lineHeight: lineHeight.normal,
     fontStyle: 'italic',
   },
   answerText: {
-    fontSize: 16,
-    color: '#2e7d32',
-    lineHeight: 26,
-    fontWeight: '500',
+    fontSize: fontSize.bodyLg,
+    color: colors.primaryDark,
+    lineHeight: lineHeight.relaxed,
+    fontWeight: fontWeight.medium,
   },
-
-  // Replay button
-  replayButton: {
-    marginTop: 4,
-    backgroundColor: '#1565c0',
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderRadius: 10,
-    elevation: 2,
-  },
-  replayButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
+  actionBtn: {
+    marginBottom: spacing.md,
+    minWidth: 200,
   },
 });
