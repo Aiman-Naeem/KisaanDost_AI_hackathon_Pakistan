@@ -34,3 +34,24 @@ export const lineHeight = {
   /** Relaxed — multi-paragraph */
   relaxed: 28,
 } as const;
+
+// ── Font Families ──────────────────────────────────────────────────────────
+
+/**
+ * Return the appropriate font family name for the given language.
+ *
+ * - Urdu (`ur`) → **NotoNastaliqUrdu** — loaded at startup via `expo-font`.
+ * - English / other → system default (`undefined` so React Native uses its
+ *   built-in font).
+ *
+ * Usage:
+ * ```tsx
+ * <Text style={{ fontFamily: getFontFamily(language) }}>…</Text>
+ * ```
+ */
+export function getFontFamily(language: 'ur' | 'en'): string | undefined {
+  if (language === 'ur') {
+    return 'NotoNastaliqUrdu';
+  }
+  return undefined; // fall back to system default
+}

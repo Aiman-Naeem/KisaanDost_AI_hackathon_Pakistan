@@ -27,7 +27,10 @@
         {
           "microphonePermission": "Allow KisaanDost to access your microphone for voice commands."
         }
-      ]
+      ],
+      "expo-localization",
+      "expo-font",
+      "expo-asset"
     ]
   }
 }
