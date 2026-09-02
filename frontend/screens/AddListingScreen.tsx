@@ -15,25 +15,20 @@ import { createListing, deleteListing } from '../services/api';
 import type { Crop } from '../services/api';
 import type { MarketplaceStackParamList } from './ListingsScreen';
 import { useFarmerContext } from '../contexts/FarmerContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { StateCard, PrimaryButton } from '../components/ui';
+import { getCropIcon, getCropFullLabelI18n } from '../theme/crops';
 import { colors } from '../theme/colors';
 import { spacing, radius } from '../theme/spacing';
-import { fontSize, fontWeight } from '../theme/typography';
-import { cropDisplay } from '../theme/crops';
+import { fontSize, fontWeight, getFontFamily } from '../theme/typography';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'AddListingScreen'>;
-
-const CROP_OPTIONS: { label: string; value: Crop }[] = (
-  Object.entries(cropDisplay) as [Crop, { icon: string; labelFull: string }][]
-).map(([key, val]) => ({
-  label: `${val.icon} ${val.labelFull}`,
-  value: key,
-}));
 
 type FieldErrors = Partial<Record<'crop' | 'quantity' | 'price' | 'location' | 'phone' | 'general', string>>;
 
 export default function AddListingScreen({ route, navigation }: Props) {
   const { farmerId } = useFarmerContext();
+  const { language, t } = useLanguage();
 
   const editingListingId = route.params?.editingListingId;
   const initialData = route.params?.initialData;
@@ -41,9 +36,9 @@ export default function AddListingScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     if (isEditing) {
-      navigation.setOptions({ title: 'Edit Listing' });
+      navigation.setOptions({ title: t('marketplace.addListingScreen.editTitle') });
     }
-  }, [isEditing, navigation]);
+  }, [isEditing, navigation, t]);
 
   const [crop, setCrop] = useState<Crop>(initialData?.crop ?? 'wheat');
   const [quantity, setQuantity] = useState(initialData?.quantity?.toString() ?? '');
@@ -56,13 +51,13 @@ export default function AddListingScreen({ route, navigation }: Props) {
   const validate = (): FieldErrors => {
     const e: FieldErrors = {};
     if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) <= 0)
-      e.quantity = 'Enter a valid quantity (kg)';
+      e.quantity = t('marketplace.addListingScreen.quantityError');
     if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0)
-      e.price = 'Enter a valid price (PKR/kg)';
+      e.price = t('marketplace.addListingScreen.priceError');
     if (!location.trim())
-      e.location = 'Location is required';
+      e.location = t('marketplace.addListingScreen.locationError');
     if (!/^\d{11}$/.test(phone.trim()))
-      e.phone = 'Phone must be exactly 11 digits';
+      e.phone = t('marketplace.addListingScreen.phoneError');
     return e;
   };
 
@@ -98,7 +93,7 @@ export default function AddListingScreen({ route, navigation }: Props) {
       if (isEditing && editingListingId) {
         const deleteResult = await deleteListing(editingListingId);
         if (!deleteResult.success) {
-          setErrors({ general: 'Could not delete the original listing. Please try again.' });
+          setErrors({ general: t('marketplace.addListingScreen.errorDeleteOriginal') });
           return;
         }
         const createResult = await createListing(listingData);
@@ -106,10 +101,9 @@ export default function AddListingScreen({ route, navigation }: Props) {
           navigation.popToTop();
         } else {
           Alert.alert(
-            'Update Failed',
-            'The original listing was deleted, but the updated listing could not be saved. ' +
-            'Please create a new listing with your changes.',
-            [{ text: 'OK', onPress: () => navigation.popToTop() }]
+            t('marketplace.addListingScreen.updateFailedTitle'),
+            t('marketplace.addListingScreen.updateFailedMessage'),
+            [{ text: t('common.ok'), onPress: () => navigation.popToTop() }]
           );
         }
       } else {
@@ -117,11 +111,11 @@ export default function AddListingScreen({ route, navigation }: Props) {
         if (result.success) {
           navigation.goBack();
         } else {
-          setErrors(mapApiError((result as any).error ?? 'Submission failed'));
+          setErrors(mapApiError((result as any).error ?? t('marketplace.addListingScreen.generalError')));
         }
       }
     } catch (err) {
-      setErrors({ general: 'Something went wrong, please try again.' });
+      setErrors({ general: t('common.error') });
       console.warn('Listing submission failed:', err);
     } finally {
       setSubmitting(false);
@@ -139,8 +133,9 @@ export default function AddListingScreen({ route, navigation }: Props) {
           <StateCard
             variant="error"
             icon="⚠️"
-            title="Error"
+            title={t('common.error')}
             description={errors.general}
+            language={language}
           />
         )}
 
@@ -149,13 +144,16 @@ export default function AddListingScreen({ route, navigation }: Props) {
           <StateCard
             variant="info"
             icon="✏️"
-            title="Editing Listing"
-            description="Changes will be saved as a new listing."
+            title={t('marketplace.addListingScreen.editingNotice')}
+            description={t('marketplace.addListingScreen.editingDescription')}
+            language={language}
           />
         )}
 
         {/* ── Crop ──────────────────────────────────────────────────── */}
-        <Text style={styles.label}>Crop *</Text>
+        <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+          {t('marketplace.addListingScreen.cropLabel')}
+        </Text>
         <View style={[styles.pickerWrapper, errors.crop && styles.inputError]}>
           <Picker
             selectedValue={crop}
@@ -163,18 +161,24 @@ export default function AddListingScreen({ route, navigation }: Props) {
             style={styles.picker}
             dropdownIconColor={colors.primary}
           >
-            {CROP_OPTIONS.map((opt) => (
-              <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
+            {(['wheat', 'rice', 'cotton', 'maize'] as Crop[]).map((cropVal) => (
+              <Picker.Item
+                key={cropVal}
+                label={`${getCropIcon(cropVal)} ${getCropFullLabelI18n(cropVal, t)}`}
+                value={cropVal}
+              />
             ))}
           </Picker>
         </View>
         {errors.crop && <Text style={styles.fieldError}>{errors.crop}</Text>}
 
         {/* ── Quantity ──────────────────────────────────────────────── */}
-        <Text style={styles.label}>Quantity (kg) *</Text>
+        <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+          {t('marketplace.addListingScreen.quantityLabel')}
+        </Text>
         <TextInput
-          style={[styles.input, errors.quantity && styles.inputError]}
-          placeholder="e.g. 500"
+          style={[styles.input, errors.quantity && styles.inputError, { fontFamily: getFontFamily(language) }]}
+          placeholder={t('marketplace.addListingScreen.quantityPlaceholder')}
           placeholderTextColor="#aaa"
           keyboardType="numeric"
           value={quantity}
@@ -186,10 +190,12 @@ export default function AddListingScreen({ route, navigation }: Props) {
         {errors.quantity && <Text style={styles.fieldError}>{errors.quantity}</Text>}
 
         {/* ── Price ─────────────────────────────────────────────────── */}
-        <Text style={styles.label}>Price (PKR/kg) *</Text>
+        <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+          {t('marketplace.addListingScreen.priceLabel')}
+        </Text>
         <TextInput
-          style={[styles.input, errors.price && styles.inputError]}
-          placeholder="e.g. 3200"
+          style={[styles.input, errors.price && styles.inputError, { fontFamily: getFontFamily(language) }]}
+          placeholder={t('marketplace.addListingScreen.pricePlaceholder')}
           placeholderTextColor="#aaa"
           keyboardType="numeric"
           value={price}
@@ -201,10 +207,12 @@ export default function AddListingScreen({ route, navigation }: Props) {
         {errors.price && <Text style={styles.fieldError}>{errors.price}</Text>}
 
         {/* ── Location ──────────────────────────────────────────────── */}
-        <Text style={styles.label}>Location *</Text>
+        <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+          {t('marketplace.addListingScreen.locationLabel')}
+        </Text>
         <TextInput
-          style={[styles.input, errors.location && styles.inputError]}
-          placeholder="e.g. Lahore"
+          style={[styles.input, errors.location && styles.inputError, { fontFamily: getFontFamily(language) }]}
+          placeholder={t('marketplace.addListingScreen.locationPlaceholder')}
           placeholderTextColor="#aaa"
           value={location}
           autoCorrect={false}
@@ -216,10 +224,12 @@ export default function AddListingScreen({ route, navigation }: Props) {
         {errors.location && <Text style={styles.fieldError}>{errors.location}</Text>}
 
         {/* ── Phone ─────────────────────────────────────────────────── */}
-        <Text style={styles.label}>Phone (11 digits) *</Text>
+        <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+          {t('marketplace.addListingScreen.phoneLabel')}
+        </Text>
         <TextInput
-          style={[styles.input, errors.phone && styles.inputError]}
-          placeholder="e.g. 03001234567"
+          style={[styles.input, errors.phone && styles.inputError, { fontFamily: getFontFamily(language) }]}
+          placeholder={t('marketplace.addListingScreen.phonePlaceholder')}
           placeholderTextColor="#aaa"
           keyboardType="phone-pad"
           maxLength={11}
@@ -233,7 +243,7 @@ export default function AddListingScreen({ route, navigation }: Props) {
 
         {/* ── Submit ────────────────────────────────────────────────── */}
         <PrimaryButton
-          label={isEditing ? 'Save Changes' : 'Post Listing'}
+          label={isEditing ? t('marketplace.addListingScreen.saveChangesButton') : t('marketplace.addListingScreen.postListingButton')}
           onPress={handleSubmit}
           loading={submitting}
           style={styles.submitButton}

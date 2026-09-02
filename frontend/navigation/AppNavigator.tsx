@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
 import VoiceAssistantScreen from '../screens/VoiceAssistantScreen';
 import MarketplaceNavigator from './MarketplaceNavigator';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export type RootTabParamList = {
   VoiceAssistant: undefined;
@@ -12,6 +14,20 @@ export type RootTabParamList = {
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export default function AppNavigator() {
+  const { language, t } = useLanguage();
+  const [tabLabels, setTabLabels] = useState({
+    voiceAssistant: t('nav.voiceAssistant'),
+    marketplace: t('nav.marketplace'),
+  });
+
+  // Update tab labels when language changes
+  useEffect(() => {
+    setTabLabels({
+      voiceAssistant: t('nav.voiceAssistant'),
+      marketplace: t('nav.marketplace'),
+    });
+  }, [language, t]);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -34,8 +50,8 @@ export default function AppNavigator() {
         name="VoiceAssistant"
         component={VoiceAssistantScreen}
         options={{
-          title: 'Voice Assistant',
-          tabBarLabel: 'Voice Assistant',
+          title: tabLabels.voiceAssistant,
+          tabBarLabel: tabLabels.voiceAssistant,
           // Tab bar icon placeholder — swap for real icons later
           tabBarIcon: ({ color, size }) => (
             <TabIcon text="🎙️" size={size} />
@@ -47,8 +63,8 @@ export default function AppNavigator() {
         name="Marketplace"
         component={MarketplaceNavigator}
         options={{
-          title: 'Marketplace',
-          tabBarLabel: 'Marketplace',
+          title: tabLabels.marketplace,
+          tabBarLabel: tabLabels.marketplace,
           tabBarIcon: ({ color, size }) => (
             <TabIcon text="🛒" size={size} />
           ),

@@ -4,10 +4,13 @@ import ListingsScreen from '../screens/ListingsScreen';
 import ListingDetailScreen from '../screens/ListingDetailScreen';
 import AddListingScreen from '../screens/AddListingScreen';
 import { MarketplaceStackParamList } from '../screens/ListingsScreen';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Stack = createNativeStackNavigator<MarketplaceStackParamList>();
 
 export default function MarketplaceNavigator() {
+  const { t } = useLanguage();
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -19,17 +22,17 @@ export default function MarketplaceNavigator() {
       <Stack.Screen
         name="ListingsScreen"
         component={ListingsScreen}
-        options={{ title: 'Marketplace' }}
+        options={{ title: t('common.screenTitles.marketplace') }}
       />
       <Stack.Screen
         name="ListingDetailScreen"
         component={ListingDetailScreen}
-        options={{ title: 'Listing Details' }}
+        options={{ title: t('common.screenTitles.listingDetails') }}
       />
       <Stack.Screen
         name="AddListingScreen"
         component={AddListingScreen}
-        options={{ title: 'Add Listing' }}
+        options={{ title: t('common.screenTitles.addListing') }}
       />
     </Stack.Navigator>
   );

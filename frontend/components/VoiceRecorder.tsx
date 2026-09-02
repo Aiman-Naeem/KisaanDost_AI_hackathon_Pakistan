@@ -14,6 +14,7 @@ import {
   setAudioModeAsync,
   createAudioPlayer,
 } from 'expo-audio';
+import { useLanguage } from '../contexts/LanguageContext';
 import { colors } from '../theme/colors';
 import { spacing, radius } from '../theme/spacing';
 import { fontSize, fontWeight } from '../theme/typography';
@@ -35,6 +36,7 @@ export default function VoiceRecorder({
   onCancel,
   disabled = false,
 }: VoiceRecorderProps) {
+  const { t } = useLanguage();
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
 
@@ -123,10 +125,9 @@ export default function VoiceRecorder({
     return (
       <View style={styles.wrapper}>
         <Text style={styles.permIcon}>🔇</Text>
-        <Text style={styles.permTitle}>Microphone Access Denied</Text>
+        <Text style={styles.permTitle}>{t('common.permissions.micDeniedTitle')}</Text>
         <Text style={styles.permMessage}>
-          KisaanDost needs microphone permission to record your voice.
-          Please enable it in your device settings and restart the app.
+          {t('common.permissions.micDeniedMessage')}
         </Text>
       </View>
     );
@@ -139,7 +140,7 @@ export default function VoiceRecorder({
       {isRecording && (
         <View style={styles.recordingIndicator}>
           <View style={styles.redDot} />
-          <Text style={styles.recordingText}>Recording</Text>
+          <Text style={styles.recordingText}>{t('common.recording.recording')}</Text>
           <Text style={styles.timerText}>{formatTime(elapsedSeconds)}</Text>
         </View>
       )}
@@ -164,12 +165,12 @@ export default function VoiceRecorder({
       </TouchableOpacity>
 
       <Text style={[styles.micLabel, disabled && styles.micLabelDisabled]}>
-        {isPreparing ? 'Preparing...' : isRecording ? 'Tap to Stop' : disabled ? 'Please wait...' : 'Tap to Record'}
+        {isPreparing ? t('common.recording.preparing') : isRecording ? t('common.recording.tapToStop') : disabled ? t('common.recording.pleaseWait') : t('common.recording.tapToRecord')}
       </Text>
 
       {isRecording && (
         <TouchableOpacity style={styles.cancelButton} onPress={cancelRecording}>
-          <Text style={styles.cancelButtonText}>✕ Cancel</Text>
+          <Text style={styles.cancelButtonText}>{t('common.recording.cancelButton')}</Text>
         </TouchableOpacity>
       )}
 
@@ -180,7 +181,7 @@ export default function VoiceRecorder({
           disabled={isPlaying}
         >
           <Text style={styles.playButtonText}>
-            {isPlaying ? '🔊 Playing...' : '▶️ Play Recording'}
+            {isPlaying ? t('common.recording.playing') : t('common.recording.playRecording')}
           </Text>
         </TouchableOpacity>
       )}

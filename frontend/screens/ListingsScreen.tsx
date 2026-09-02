@@ -12,15 +12,17 @@ import {
   Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { getListings, deleteListing } from '../services/api';
 import type { Listing, Crop } from '../services/api';
 import { EmptyState } from '../components/ui';
-import { getCropIcon, getCropLabel } from '../theme/crops';
+import LanguageToggle from '../components/ui/LanguageToggle';
+import { getCropIcon, getCropLabelI18n } from '../theme/crops';
+import { useLanguage } from '../contexts/LanguageContext';
 import { colors } from '../theme/colors';
 import { spacing, radius } from '../theme/spacing';
-import { fontSize, fontWeight, lineHeight } from '../theme/typography';
+import { fontSize, fontWeight, lineHeight, getFontFamily } from '../theme/typography';
 
 // ── Navigation param list (shared across Marketplace screens) ───────────────
 export type MarketplaceStackParamList = {
@@ -40,17 +42,10 @@ export type MarketplaceStackParamList = {
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'ListingsScreen'>;
 
-// ── Crop filter options ────────────────────────────────────────────────────
-const CROP_FILTER_OPTIONS: { label: string; value: Crop | '' }[] = [
-  { label: 'All Crops', value: '' },
-  { label: '🌾 Wheat (گندم)', value: 'wheat' },
-  { label: '🍚 Rice (چاول)', value: 'rice' },
-  { label: '🌱 Cotton (کپاس)', value: 'cotton' },
-  { label: '🌽 Maize (مکئی)', value: 'maize' },
-];
-
 export default function ListingsScreen({ navigation }: Props) {
   const isFocused = useIsFocused();
+  const nav = useNavigation();
+  const { language, t } = useLanguage();
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +73,13 @@ export default function ListingsScreen({ navigation }: Props) {
     }
   }, [cropFilter, locationFilter]);
 
+  // Set header with LanguageToggle component
+  useEffect(() => {
+    nav.setOptions({
+      headerRight: () => <LanguageToggle />,
+    });
+  }, [nav]);
+
   useEffect(() => {
     if (isFocused) {
       fetchListings(!refreshing);
@@ -93,12 +95,12 @@ export default function ListingsScreen({ navigation }: Props) {
   // ── Delete with confirmation ─────────────────────────────────────────────
   const handleDelete = (id: string) => {
     Alert.alert(
-      'Delete Listing',
-      'Are you sure you want to delete this listing? This cannot be undone.',
+      t('marketplace.listingsScreen.deleteConfirmTitle'),
+      t('marketplace.listingsScreen.deleteConfirmMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('marketplace.listingsScreen.cancelButton'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('marketplace.listingsScreen.deleteButton'),
           style: 'destructive',
           onPress: async () => {
             setDeletingId(id);
@@ -126,8 +128,8 @@ export default function ListingsScreen({ navigation }: Props) {
     >
       <View style={styles.cardHeader}>
         <View style={styles.cropBadge}>
-          <Text style={styles.cropBadgeText}>
-            {getCropIcon(item.crop)} {getCropLabel(item.crop)}
+          <Text style={[styles.cropBadgeText, { fontFamily: getFontFamily(language) }]}>
+            {getCropIcon(item.crop)} {getCropLabelI18n(item.crop, t)}
           </Text>
         </View>
         <Pressable
@@ -145,28 +147,54 @@ export default function ListingsScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.cardRow}>
-        <Text style={styles.label}>Quantity</Text>
-        <Text style={styles.value}>{item.quantity.toLocaleString()} kg</Text>
+        <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+          {t('marketplace.listingsScreen.quantity')}
+        </Text>
+        <Text style={[styles.value, { fontFamily: getFontFamily(language) }]}>
+          {item.quantity.toLocaleString()} kg
+        </Text>
       </View>
       <View style={styles.cardRow}>
-        <Text style={styles.label}>Price</Text>
-        <Text style={styles.value}>PKR {item.price.toLocaleString()}/kg</Text>
+        <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+          {t('marketplace.listingsScreen.price')}
+        </Text>
+        <Text style={[styles.value, { fontFamily: getFontFamily(language) }]}>
+          PKR {item.price.toLocaleString()}/kg
+        </Text>
       </View>
       <View style={styles.cardRow}>
-        <Text style={styles.label}>Location</Text>
-        <Text style={styles.value}>{item.location}</Text>
+        <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+          {t('marketplace.listingsScreen.location')}
+        </Text>
+        <Text style={[styles.value, { fontFamily: getFontFamily(language) }]}>
+          {item.location}
+        </Text>
       </View>
       <View style={styles.cardRow}>
-        <Text style={styles.label}>Phone</Text>
-        <Text style={styles.value}>{item.phone}</Text>
+        <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+          {t('marketplace.listingsScreen.phone')}
+        </Text>
+        <Text style={[styles.value, { fontFamily: getFontFamily(language) }]}>
+          {item.phone}
+        </Text>
       </View>
     </Pressable>
   );
 
   // ── Filter header ───────────────────────────────────────────────────────
+  const CROP_FILTER_OPTIONS: { label: string; value: Crop | '' }[] = [
+    { label: t('marketplace.crops.allCrops'), value: '' },
+    { label: `${getCropIcon('wheat')} ${t('marketplace.crops.wheat.labelFull')}`, value: 'wheat' },
+    { label: `${getCropIcon('rice')} ${t('marketplace.crops.rice.labelFull')}`, value: 'rice' },
+    { label: `${getCropIcon('cotton')} ${t('marketplace.crops.cotton.labelFull')}`, value: 'cotton' },
+    { label: `${getCropIcon('maize')} ${t('marketplace.crops.maize.labelFull')}`, value: 'maize' },
+  ];
+
   const ListHeader = (
     <View style={styles.filterContainer}>
-      <Text style={styles.filterLabel}>Filter by Crop</Text>
+      <Text style={[styles.filterLabel, { fontFamily: getFontFamily(language) }]}>
+        {t('marketplace.listingsScreen.filterByCrop')}
+      </Text>
       <View style={styles.pickerWrapper}>
         <Picker
           selectedValue={cropFilter}
@@ -180,10 +208,12 @@ export default function ListingsScreen({ navigation }: Props) {
         </Picker>
       </View>
 
-      <Text style={styles.filterLabel}>Filter by Location</Text>
+      <Text style={[styles.filterLabel, { fontFamily: getFontFamily(language) }]}>
+        {t('marketplace.listingsScreen.filterByLocation')}
+      </Text>
       <TextInput
-        style={styles.textInput}
-        placeholder="e.g. Lahore"
+        style={[styles.textInput, { fontFamily: getFontFamily(language) }]}
+        placeholder={t('marketplace.listingsScreen.locationPlaceholder')}
         placeholderTextColor="#aaa"
         value={locationFilter}
         onChangeText={setLocationFilter}
@@ -196,12 +226,13 @@ export default function ListingsScreen({ navigation }: Props) {
   const ListEmpty = loading ? null : (
     <EmptyState
       icon="🌾"
-      title="No listings yet"
+      title={t('marketplace.listingsScreen.noListingsYet')}
       description={
         cropFilter || locationFilter
-          ? 'No results match your filters. Try adjusting them.'
-          : 'Be the first to list your crop!'
+          ? t('marketplace.listingsScreen.noResultsMatchFilters')
+          : t('marketplace.listingsScreen.beFirstListing')
       }
+      language={language}
     />
   );
 
@@ -210,7 +241,9 @@ export default function ListingsScreen({ navigation }: Props) {
       {loading && listings.length === 0 ? (
         <View style={styles.initialLoader}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading listings...</Text>
+          <Text style={[styles.loadingText, { fontFamily: getFontFamily(language) }]}>
+            {t('marketplace.listingsScreen.loadingListings')}
+          </Text>
         </View>
       ) : (
         <FlatList

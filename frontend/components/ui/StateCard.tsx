@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { colors } from '../../theme/colors';
 import { spacing, radius } from '../../theme/spacing';
-import { fontSize, fontWeight, lineHeight } from '../../theme/typography';
+import { fontSize, fontWeight, lineHeight, getFontFamily } from '../../theme/typography';
 
 export type StateCardVariant = 'success' | 'error' | 'info' | 'neutral';
 
@@ -14,6 +14,8 @@ export interface StateCardProps {
   /** Optional action button rendered below the description. */
   actionLabel?: string;
   onAction?: () => void;
+  /** Language code for font selection and text alignment. Defaults to 'ur'. */
+  language?: 'ur' | 'en';
 }
 
 const VARIANT_STYLES: Record<
@@ -57,19 +59,37 @@ export default function StateCard({
   description,
   actionLabel,
   onAction,
+  language = 'ur',
 }: StateCardProps) {
   const v = VARIANT_STYLES[variant];
+  const textAlign = language === 'ur' ? 'right' : 'center';
 
   return (
     <View style={[styles.card, { backgroundColor: v.bg, borderColor: v.border }]}>
       <Text style={styles.icon}>{icon}</Text>
-      <Text style={[styles.title, { color: v.titleColor }]}>{title}</Text>
+      <Text
+        style={[
+          styles.title,
+          { color: v.titleColor, fontFamily: getFontFamily(language), textAlign },
+        ]}
+      >
+        {title}
+      </Text>
       {description ? (
-        <Text style={[styles.description, { color: v.textColor }]}>{description}</Text>
+        <Text
+          style={[
+            styles.description,
+            { color: v.textColor, fontFamily: getFontFamily(language), textAlign },
+          ]}
+        >
+          {description}
+        </Text>
       ) : null}
       {actionLabel && onAction ? (
         <TouchableOpacity style={styles.actionButton} onPress={onAction} activeOpacity={0.7}>
-          <Text style={styles.actionLabel}>{actionLabel}</Text>
+          <Text style={[styles.actionLabel, { fontFamily: getFontFamily(language) }]}>
+            {actionLabel}
+          </Text>
         </TouchableOpacity>
       ) : null}
     </View>

@@ -6,18 +6,23 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { createAudioPlayer } from 'expo-audio';
 import VoiceRecorder from '../components/VoiceRecorder';
 import { StateCard, PrimaryButton } from '../components/ui';
+import LanguageToggle from '../components/ui/LanguageToggle';
 import { sendVoiceQuery, type VoiceResponse, type ApiResponse } from '../services/api';
 import { decodeBase64Audio, deleteTempAudio } from '../utils/audio';
 import { useFarmerContext } from '../contexts/FarmerContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { colors } from '../theme/colors';
 import { spacing, radius } from '../theme/spacing';
-import { fontSize, fontWeight, lineHeight } from '../theme/typography';
+import { fontSize, fontWeight, lineHeight, getFontFamily } from '../theme/typography';
 
 export default function VoiceAssistantScreen() {
   const { farmerId } = useFarmerContext();
+  const { language, t } = useLanguage();
+  const navigation = useNavigation();
   const [isQuerying, setIsQuerying] = useState(false);
   const [response, setResponse] = useState<(VoiceResponse & { success: true }) | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +39,13 @@ export default function VoiceAssistantScreen() {
       }
     };
   }, []);
+
+  // Set header with LanguageToggle component
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => <LanguageToggle />,
+    });
+  }, [navigation]);
 
   const resetState = useCallback(() => {
     setError(null);
@@ -65,7 +77,7 @@ export default function VoiceAssistantScreen() {
       const result = await sendVoiceQuery(audioUri, farmerId ?? undefined);
 
       if ((result as ApiResponse).success === false) {
-        setError((result as any).error ?? 'Something went wrong, please try again.');
+        setError((result as any).error ?? t('voice.errorFallback'));
         return;
       }
 
@@ -85,7 +97,7 @@ export default function VoiceAssistantScreen() {
         }
       }
     } catch (err) {
-      setError('Something went wrong, please try again.');
+      setError(t('voice.errorFallback'));
       console.warn('Voice query failed:', err);
     } finally {
       setIsQuerying(false);
@@ -100,9 +112,16 @@ export default function VoiceAssistantScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Voice Assistant</Text>
-      <Text style={styles.subtitle}>
-        Ask KisaanDost any farming question in Urdu.
+      <Text style={[styles.title, { fontFamily: getFontFamily(language) }]}>
+        {t('voice.title')}
+      </Text>
+      <Text
+        style={[
+          styles.subtitle,
+          { fontFamily: getFontFamily(language), textAlign: language === 'ur' ? 'right' : 'center' },
+        ]}
+      >
+        {t('voice.subtitle')}
       </Text>
 
       <VoiceRecorder
@@ -115,7 +134,14 @@ export default function VoiceAssistantScreen() {
       {isSending && (
         <View style={styles.sendingContainer}>
           <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={styles.sendingText}>KisaanDost is thinking...</Text>
+          <Text
+            style={[
+              styles.sendingText,
+              { fontFamily: getFontFamily(language), textAlign: language === 'ur' ? 'right' : 'center' },
+            ]}
+          >
+            {t('voice.thinking')}
+          </Text>
         </View>
       )}
 
@@ -124,10 +150,11 @@ export default function VoiceAssistantScreen() {
         <StateCard
           variant="error"
           icon="⚠️"
-          title="Oops! Something went wrong"
+          title={t('voice.errorTitle')}
           description={error ?? undefined}
-          actionLabel="🎙️ Try Again"
+          actionLabel={t('voice.tryAgain')}
           onAction={handleTryAgain}
+          language={language}
         />
       )}
 
@@ -136,10 +163,11 @@ export default function VoiceAssistantScreen() {
         <StateCard
           variant="info"
           icon="🤔"
-          title="I didn't quite catch that"
+          title={t('voice.unrecognizedTitle')}
           description={response.answer}
-          actionLabel="🎙️ Try Again"
+          actionLabel={t('voice.tryAgain')}
           onAction={handleTryAgain}
+          language={language}
         />
       )}
 
@@ -154,19 +182,47 @@ export default function VoiceAssistantScreen() {
 
           {response.transcription ? (
             <View style={styles.transcriptionCard}>
-              <Text style={styles.cardLabel}>🗣️ You said</Text>
-              <Text style={styles.transcriptionText}>{response.transcription}</Text>
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { fontFamily: getFontFamily(language), textAlign: language === 'ur' ? 'right' : 'left' },
+                ]}
+              >
+                {t('voice.youSaid')}
+              </Text>
+              <Text
+                style={[
+                  styles.transcriptionText,
+                  { fontFamily: getFontFamily('ur'), textAlign: 'right', writingDirection: 'rtl' },
+                ]}
+              >
+                {response.transcription}
+              </Text>
             </View>
           ) : null}
 
           <View style={styles.answerCard}>
-            <Text style={styles.cardLabel}>🌾 KisaanDost says</Text>
-            <Text style={styles.answerText}>{response.answer}</Text>
+            <Text
+              style={[
+                styles.cardLabel,
+                { fontFamily: getFontFamily(language), textAlign: language === 'ur' ? 'right' : 'left' },
+              ]}
+            >
+              {t('voice.kisaanSays')}
+            </Text>
+            <Text
+              style={[
+                styles.answerText,
+                { fontFamily: getFontFamily('ur'), textAlign: 'right', writingDirection: 'rtl' },
+              ]}
+            >
+              {response.answer}
+            </Text>
           </View>
 
           {hasAudio && (
             <PrimaryButton
-              label="Replay Answer"
+              label={t('voice.replayAnswer')}
               icon="🔊"
               variant="secondary"
               onPress={handleReplay}
@@ -175,7 +231,7 @@ export default function VoiceAssistantScreen() {
           )}
 
           <PrimaryButton
-            label="Ask Another Question"
+            label={t('voice.askAnotherQuestion')}
             variant="primary"
             onPress={handleTryAgain}
             style={styles.actionBtn}
@@ -188,10 +244,9 @@ export default function VoiceAssistantScreen() {
         <StateCard
           variant="neutral"
           icon="🌱"
-          title="Ask a Farming Question"
-          description={
-            "Tap the microphone button above and speak your question in Urdu.\nKisaanDost will listen and give you farming advice."
-          }
+          title={t('voice.idleTitle')}
+          description={t('voice.idleDescription')}
+          language={language}
         />
       )}
     </ScrollView>

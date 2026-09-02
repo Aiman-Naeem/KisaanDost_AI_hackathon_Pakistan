@@ -13,14 +13,15 @@ import { getListingById, deleteListing } from '../services/api';
 import type { Listing, Crop } from '../services/api';
 import type { MarketplaceStackParamList } from './ListingsScreen';
 import { StateCard, PrimaryButton } from '../components/ui';
-import { getCropIcon, getCropFullLabel } from '../theme/crops';
+import { getCropIcon, getCropFullLabelI18n } from '../theme/crops';
+import { useLanguage } from '../contexts/LanguageContext';
 import { colors } from '../theme/colors';
 import { spacing, radius } from '../theme/spacing';
-import { fontSize, fontWeight, lineHeight } from '../theme/typography';
+import { fontSize, fontWeight, lineHeight, getFontFamily } from '../theme/typography';
 
 type Props = NativeStackScreenProps<MarketplaceStackParamList, 'ListingDetailScreen'>;
 
-function formatRelativeDate(isoString: string): string {
+function formatRelativeDate(isoString: string, t: (key: string) => string): string {
   const date = new Date(isoString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -28,15 +29,16 @@ function formatRelativeDate(isoString: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
-  if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  if (diffMins < 1) return t('marketplace.relativeTime.justNow');
+  if (diffMins < 60) return `${diffMins} ${diffMins === 1 ? t('marketplace.relativeTime.minuteAgo') : t('marketplace.relativeTime.minutesAgo')}`;
+  if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? t('marketplace.relativeTime.hourAgo') : t('marketplace.relativeTime.hoursAgo')}`;
+  if (diffDays < 30) return `${diffDays} ${diffDays === 1 ? t('marketplace.relativeTime.dayAgo') : t('marketplace.relativeTime.daysAgo')}`;
   return date.toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export default function ListingDetailScreen({ route, navigation }: Props) {
   const { listingId } = route.params;
+  const { language, t } = useLanguage();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -85,12 +87,12 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
 
   const handleDelete = () => {
     Alert.alert(
-      'Delete Listing',
-      'Are you sure you want to delete this listing? This cannot be undone.',
+      t('marketplace.listingDetailScreen.deleteConfirmTitle'),
+      t('marketplace.listingDetailScreen.deleteConfirmMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('marketplace.listingsScreen.deleteButton'),
           style: 'destructive',
           onPress: async () => {
             setDeleting(true);
@@ -112,7 +114,9 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading listing...</Text>
+        <Text style={[styles.loadingText, { fontFamily: getFontFamily(language) }]}>
+          {t('marketplace.listingDetailScreen.loadingListing')}
+        </Text>
       </View>
     );
   }
@@ -124,10 +128,11 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
         <StateCard
           variant="neutral"
           icon="🔍"
-          title="Listing Not Found"
-          description="This listing may have been deleted or is no longer available."
-          actionLabel="← Back to Listings"
+          title={t('marketplace.listingDetailScreen.notFoundTitle')}
+          description={t('marketplace.listingDetailScreen.notFoundDescription')}
+          actionLabel={t('marketplace.listingDetailScreen.backButton')}
           onAction={() => navigation.goBack()}
+          language={language}
         />
       </View>
     );
@@ -138,53 +143,73 @@ export default function ListingDetailScreen({ route, navigation }: Props) {
     <ScrollView contentContainerStyle={styles.container}>
       {/* Crop badge with icon */}
       <View style={styles.cropBadge}>
-        <Text style={styles.cropBadgeText}>
-          {getCropIcon(listing.crop)} {getCropFullLabel(listing.crop)}
+        <Text style={[styles.cropBadgeText, { fontFamily: getFontFamily(language) }]}>
+          {getCropIcon(listing.crop)} {getCropFullLabelI18n(listing.crop, t)}
         </Text>
       </View>
 
       {/* Details card */}
       <View style={styles.card}>
         <View style={styles.row}>
-          <Text style={styles.label}>Quantity</Text>
-          <Text style={styles.value}>{listing.quantity.toLocaleString()} kg</Text>
+          <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+            {t('marketplace.listingDetailScreen.quantity')}
+          </Text>
+          <Text style={[styles.value, { fontFamily: getFontFamily(language) }]}>
+            {listing.quantity.toLocaleString()} kg
+          </Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>Price</Text>
-          <Text style={styles.value}>PKR {listing.price.toLocaleString()}/kg</Text>
+          <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+            {t('marketplace.listingDetailScreen.price')}
+          </Text>
+          <Text style={[styles.value, { fontFamily: getFontFamily(language) }]}>
+            PKR {listing.price.toLocaleString()}/kg
+          </Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.row}>
-          <Text style={styles.label}>Location</Text>
-          <Text style={styles.value}>{listing.location}</Text>
+          <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+            {t('marketplace.listingDetailScreen.location')}
+          </Text>
+          <Text style={[styles.value, { fontFamily: getFontFamily(language) }]}>
+            {listing.location}
+          </Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>Phone</Text>
-          <Text style={styles.value}>{listing.phone}</Text>
+          <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+            {t('marketplace.listingDetailScreen.phone')}
+          </Text>
+          <Text style={[styles.value, { fontFamily: getFontFamily(language) }]}>
+            {listing.phone}
+          </Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.row}>
-          <Text style={styles.label}>Listed</Text>
-          <Text style={styles.value}>{formatRelativeDate(listing.createdAt)}</Text>
+          <Text style={[styles.label, { fontFamily: getFontFamily(language) }]}>
+            {t('marketplace.listingDetailScreen.listed')}
+          </Text>
+          <Text style={[styles.value, { fontFamily: getFontFamily(language) }]}>
+            {formatRelativeDate(listing.createdAt, t)}
+          </Text>
         </View>
       </View>
 
       {/* Action buttons */}
       <View style={styles.actions}>
         <PrimaryButton
-          label="Call Farmer"
+          label={t('marketplace.listingDetailScreen.callFarmerButton')}
           icon="📞"
           variant="secondary"
           onPress={handleCallFarmer}
         />
         <PrimaryButton
-          label="Edit"
+          label={t('marketplace.listingDetailScreen.editButton')}
           icon="✏️"
           variant="primary"
           onPress={handleEdit}
         />
         <PrimaryButton
-          label="Delete"
+          label={t('marketplace.listingDetailScreen.deleteButton')}
           icon="🗑️"
           variant="danger"
           onPress={handleDelete}

@@ -7,14 +7,26 @@
  * response shape so the UI handles both paths identically.
  *
  * Toggle USE_MOCK to false once the real backend is ready. When doing so,
- * each function should route through fetch() calls to BASE_URL instead.
+ * each function should route through fetch() calls to API_BASE_URL instead.
  */
+
+import * as Constants from 'expo-constants';
 
 // Set to false to route all calls through the real backend via fetch()
 const USE_MOCK = true;
 
-// Real backend base URL — used when USE_MOCK is false
-const BASE_URL = 'https://api.kisaandost.example.com';
+/**
+ * Real backend base URL — sourced from app.config.js via Constants.expoConfig.extra.apiBaseUrl
+ * The value comes from the API_BASE_URL environment variable (.env file).
+ * On Day 5, update .env and restart the Expo dev server to switch backends.
+ */
+export const API_BASE_URL: string =
+  Constants.expoConfig?.extra?.apiBaseUrl || 'http://localhost:3000';
+
+// Log the configured API URL during development (comment out in production)
+if (__DEV__) {
+  console.log('[api.ts] Configured API_BASE_URL:', API_BASE_URL);
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -166,11 +178,11 @@ export async function sendVoiceQuery(
   farmerId?: string
 ): Promise<VoiceResponse> {
   if (!USE_MOCK) {
-    // TODO: implement real fetch() call to BASE_URL + '/api/assistant/voice'
+    // TODO: implement real fetch() call to API_BASE_URL + '/api/assistant/voice'
     // const formData = new FormData();
     // formData.append('audio', { uri: audioUri, type: 'audio/m4a', name: 'recording.m4a' });
     // if (farmerId) formData.append('farmerId', farmerId);
-    // const res = await fetch(BASE_URL + '/api/assistant/voice', { method: 'POST', body: formData });
+    // const res = await fetch(API_BASE_URL + '/api/assistant/voice', { method: 'POST', body: formData });
     // return res.json();
     throw new Error('Real backend not yet implemented');
   }
@@ -210,7 +222,7 @@ export async function createListing(
   listing: ListingInput
 ): Promise<ApiResponse> {
   if (!USE_MOCK) {
-    // TODO: fetch(BASE_URL + '/api/listings', { method: 'POST', body: JSON.stringify(listing) })
+    // TODO: fetch(API_BASE_URL + '/api/listings', { method: 'POST', body: JSON.stringify(listing) })
     throw new Error('Real backend not yet implemented');
   }
 
@@ -265,7 +277,7 @@ export async function getListings(
   filters: { crop?: Crop; location?: string } = {}
 ): Promise<ApiResponse> {
   if (!USE_MOCK) {
-    // TODO: build query string from filters, fetch(BASE_URL + '/api/listings?' + qs)
+    // TODO: build query string from filters, fetch(API_BASE_URL + '/api/listings?' + qs)
     throw new Error('Real backend not yet implemented');
   }
 
@@ -296,7 +308,7 @@ export async function getListings(
 
 export async function getListingById(id: string): Promise<ApiResponse> {
   if (!USE_MOCK) {
-    // TODO: fetch(BASE_URL + '/api/listings/' + id)
+    // TODO: fetch(API_BASE_URL + '/api/listings/' + id)
     throw new Error('Real backend not yet implemented');
   }
 
@@ -319,7 +331,7 @@ export async function getListingById(id: string): Promise<ApiResponse> {
 
 export async function deleteListing(id: string): Promise<ApiResponse> {
   if (!USE_MOCK) {
-    // TODO: fetch(BASE_URL + '/api/listings/' + id, { method: 'DELETE' })
+    // TODO: fetch(API_BASE_URL + '/api/listings/' + id, { method: 'DELETE' })
     throw new Error('Real backend not yet implemented');
   }
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import { fontSize, fontWeight, lineHeight } from '../../theme/typography';
+import { fontSize, fontWeight, lineHeight, getFontFamily } from '../../theme/typography';
 
 export interface EmptyStateProps {
   icon: string;
@@ -11,6 +11,8 @@ export interface EmptyStateProps {
   /** Optional action button at the bottom. */
   actionLabel?: string;
   onAction?: () => void;
+  /** Language code for font selection and text alignment. Defaults to 'ur'. */
+  language?: 'ur' | 'en';
 }
 
 /**
@@ -23,15 +25,26 @@ export default function EmptyState({
   description,
   actionLabel,
   onAction,
+  language = 'ur',
 }: EmptyStateProps) {
+  const textAlign = language === 'ur' ? 'right' : 'center';
+
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>{icon}</Text>
-      <Text style={styles.title}>{title}</Text>
-      {description ? <Text style={styles.description}>{description}</Text> : null}
+      <Text style={[styles.title, { fontFamily: getFontFamily(language), textAlign }]}>
+        {title}
+      </Text>
+      {description ? (
+        <Text style={[styles.description, { fontFamily: getFontFamily(language), textAlign }]}>
+          {description}
+        </Text>
+      ) : null}
       {actionLabel && onAction ? (
         <TouchableOpacity style={styles.button} onPress={onAction} activeOpacity={0.7}>
-          <Text style={styles.buttonText}>{actionLabel}</Text>
+          <Text style={[styles.buttonText, { fontFamily: getFontFamily(language) }]}>
+            {actionLabel}
+          </Text>
         </TouchableOpacity>
       ) : null}
     </View>

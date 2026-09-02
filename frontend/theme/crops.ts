@@ -50,3 +50,25 @@ export function getCropLabel(crop: Crop): string {
 export function getCropFullLabel(crop: Crop): string {
   return cropDisplay[crop].labelFull;
 }
+
+/**
+ * Get the localized crop label using i18n.
+ * Usage: getCropLabelI18n(crop, t) where t is the translate function from useLanguage
+ */
+export function getCropLabelI18n(
+  crop: Crop,
+  t: (key: string) => string
+): string {
+  return t(`crops.${crop}.label`);
+}
+
+/**
+ * Get the localized full crop label using i18n.
+ * Usage: getCropFullLabelI18n(crop, t) where t is the translate function from useLanguage
+ */
+export function getCropFullLabelI18n(
+  crop: Crop,
+  t: (key: string) => string
+): string {
+  return t(`crops.${crop}.labelFull`);
+}

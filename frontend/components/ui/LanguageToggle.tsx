@@ -12,7 +12,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { colors } from '../../theme/colors';
 
 export default function LanguageToggle() {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
 
   return (
     <View style={styles.container}>
@@ -31,10 +31,10 @@ export default function LanguageToggle() {
         onPress={() => setLanguage('en')}
         style={[styles.pill, language === 'en' && styles.pillActive]}
         accessibilityRole="button"
-        accessibilityLabel="English"
+        accessibilityLabel={t('common.language.english')}
       >
         <Text style={[styles.label, language === 'en' && styles.labelActive]}>
-          English
+          {t('common.language.english')}
         </Text>
       </Pressable>
     </View>
